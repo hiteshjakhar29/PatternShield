@@ -217,3 +217,18 @@ Created as a demonstration of ML evaluation capabilities for AI/ML role applicat
 **Last Updated**: November 25, 2025  
 **Version**: 1.0  
 **Status**: Production-ready evaluation framework
+
+## 🐳 Containerized API
+- Build and run locally with Docker: `make docker-compose-up`
+- Health checks available at `/health` and `/health/ready`.
+- Metrics exposed at `/metrics` for Prometheus scraping.
+
+## 🔐 Security & Configuration
+- All secrets come from environment variables; see `.env.example`.
+- API key header defaults to `X-API-Key`; JWT required for transformer endpoints.
+- CORS whitelist configurable via `CORS_ORIGINS`.
+
+## 📦 Deployment
+- Use `make docker-build` to produce the production image.
+- `scripts/deploy.sh` offers an interactive deployment helper for staging/production.
+- `DEPLOYMENT.md` contains more detailed guidance.

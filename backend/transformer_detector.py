@@ -3,22 +3,37 @@ Transformer-based Dark Pattern Detector
 Inference wrapper for fine-tuned DistilBERT model with ensemble support.
 """
 
+import importlib.util
 import os
-import torch
-import numpy as np
-from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 from typing import Dict, List, Tuple, Optional
 
+TORCH_AVAILABLE = bool(importlib.util.find_spec("torch") and importlib.util.find_spec("transformers"))
+
+if TORCH_AVAILABLE:
+    import torch  # type: ignore
+    import numpy as np  # type: ignore
+    from transformers import DistilBertTokenizer, DistilBertForSequenceClassification  # type: ignore
+
 # Import rule-based detector
-from ml_detector import DarkPatternDetector
+from backend.ml_detector import DarkPatternDetector
 
 
 class TransformerDetector:
     """DistilBERT-based dark pattern detector."""
+
+    @staticmethod
+    def model_exists(model_path: str = 'models/distilbert_darkpattern/best_model') -> bool:
+        return os.path.exists(model_path)
     
     def __init__(self, model_path='models/distilbert_darkpattern/best_model'):
         """Initialize transformer detector."""
         self.model_path = model_path
+        if not TORCH_AVAILABLE:
+            self.device = None
+            self.model_available = False
+            self.tokenizer = None
+            self.model = None
+            return
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         # Label mapping
@@ -33,8 +48,8 @@ class TransformerDetector:
         self.label2id = {v: k for k, v in self.id2label.items()}
         
         # Load model if available
-        self.model_available = os.path.exists(model_path)
-        
+        self.model_available = TORCH_AVAILABLE and os.path.exists(model_path)
+
         if self.model_available:
             print(f"Loading transformer model from {model_path}...")
             self.tokenizer = DistilBertTokenizer.from_pretrained(model_path)
