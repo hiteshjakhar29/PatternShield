@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (not needed in container)
+*.md
+docs/
+COMMANDS.md
+CV_ANALYSIS.md
+EVALUATION.md
+FEATURES.md
+INSTALL_MAC.md
+MLOPS.md
+TRAINING.md
+experiments/comparison_report.md
+experiments/test_experiments.md
+
+# Training/Testing (not needed in production)
+experiments/
+test_*.py
+train_*.py
+feature_analysis.py
+feature_extraction.py
+feature_selection.py
+model_comparison.py
+model_evaluation.py
+mlflow_tracking.py
+cv_utils.py
+vision_detector.py
+multimodal_detector.py
+transformer_detector.py
+
+# Generated files
+*.png
+*.jpg
+*.jpeg
+evaluation_results.json
+experiment_log.json
+confusion_matrix.png
+roc_curves.png
+analysis_plots/
+
+# Development scripts
+install.sh
+scripts/train.sh
+
+# Logs
+logs/
+*.log
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment files (use docker-compose env instead)
+.env
+.env.*
+
+# Requirements (only keep prod requirements in build)
+requirements.txt
+requirements-minimal.txt

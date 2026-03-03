@@ -1,0 +1,7 @@
+{"text": "Only 2 left!", "detected_pattern": "Urgency/Scarcity", "is_correct": true, "user_label": "", "domain": "test.com", "timestamp": "2026-02-17T22:17:32.176383+00:00"}
+{"text": "test", "detected_pattern": "Urgency/Scarcity", "is_correct": true, "user_label": "", "domain": "", "timestamp": "2026-02-17T22:42:23.775230+00:00"}
+{"text": "x", "detected_pattern": "y", "is_correct": true, "user_label": "", "domain": "", "timestamp": "2026-02-17T22:43:05.301817+00:00"}
+{"text": "test", "detected_pattern": "Urgency/Scarcity", "is_correct": true, "user_label": "", "domain": "", "timestamp": "2026-02-19T22:10:41.417767+00:00"}
+{"text": "x", "detected_pattern": "y", "is_correct": true, "user_label": "", "domain": "", "timestamp": "2026-02-19T22:15:32.646429+00:00"}
+{"text": "Limited time deal", "detected_pattern": "Urgency/Scarcity", "is_correct": true, "user_label": "", "domain": "www.amazon.in", "timestamp": "2026-02-20T05:52:05.505806+00:00"}
+{"text": "Limited time deal", "detected_pattern": "Urgency/Scarcity", "is_correct": false, "user_label": "", "domain": "www.amazon.in", "timestamp": "2026-02-20T05:52:08.618723+00:00"}

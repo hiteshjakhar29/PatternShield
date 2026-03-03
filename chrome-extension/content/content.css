@@ -1,0 +1,134 @@
+/**
+ * PatternShield v2.0 Content Styles
+ * 10 pattern types, severity indicators, feedback UI
+ */
+
+.patternshield-highlight {
+  outline: 3px solid var(--patternshield-color, #ef4444) !important;
+  outline-offset: 2px !important;
+  position: relative !important;
+  box-shadow: 0 0 8px var(--patternshield-color, #ef4444) !important;
+  animation: patternshield-pulse 2s infinite !important;
+}
+
+@keyframes patternshield-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* Tooltip */
+.patternshield-highlight::before {
+  content: attr(data-patternshield-tooltip);
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  color: #f1f5f9;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  white-space: nowrap;
+  z-index: 2147483647;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-left: 3px solid var(--patternshield-color, #ef4444);
+}
+
+.patternshield-highlight::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(15, 23, 42, 0.95);
+  z-index: 2147483647;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.patternshield-highlight:hover::before,
+.patternshield-highlight:hover::after { opacity: 1; }
+
+/* ── Pattern Type Colors ─────────────────────────────────── */
+.patternshield-highlight[data-patternshield="Urgency/Scarcity"]     { --patternshield-color: #ef4444; }
+.patternshield-highlight[data-patternshield="Confirmshaming"]       { --patternshield-color: #f97316; }
+.patternshield-highlight[data-patternshield="Obstruction"]          { --patternshield-color: #eab308; }
+.patternshield-highlight[data-patternshield="Visual Interference"]  { --patternshield-color: #a855f7; }
+.patternshield-highlight[data-patternshield="Hidden Costs"]         { --patternshield-color: #ec4899; }
+.patternshield-highlight[data-patternshield="Forced Continuity"]    { --patternshield-color: #14b8a6; }
+.patternshield-highlight[data-patternshield="Sneaking"]             { --patternshield-color: #6366f1; }
+.patternshield-highlight[data-patternshield="Social Proof"]         { --patternshield-color: #f59e0b; }
+.patternshield-highlight[data-patternshield="Misdirection"]         { --patternshield-color: #10b981; }
+.patternshield-highlight[data-patternshield="Price Comparison Prevention"] { --patternshield-color: #8b5cf6; }
+
+/* ── Severity Indicators ─────────────────────────────────── */
+.patternshield-highlight[data-patternshield-severity="critical"] {
+  outline-width: 4px !important;
+  animation: patternshield-critical 1s infinite !important;
+}
+@keyframes patternshield-critical {
+  0%, 100% { box-shadow: 0 0 8px var(--patternshield-color); }
+  50% { box-shadow: 0 0 20px var(--patternshield-color); }
+}
+
+/* ── Feedback Buttons ────────────────────────────────────── */
+.ps-feedback {
+  position: absolute !important;
+  top: -12px !important;
+  right: -12px !important;
+  display: flex !important;
+  gap: 2px !important;
+  z-index: 2147483646 !important;
+}
+
+.ps-fb-btn {
+  width: 24px !important;
+  height: 24px !important;
+  border: none !important;
+  border-radius: 50% !important;
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: white !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+  transition: transform 0.15s !important;
+}
+
+.ps-fb-btn:hover {
+  transform: scale(1.2) !important;
+}
+
+.ps-fb-thanks {
+  font-size: 10px !important;
+  color: #22c55e !important;
+  background: rgba(15, 23, 42, 0.9) !important;
+  padding: 2px 8px !important;
+  border-radius: 10px !important;
+  white-space: nowrap !important;
+}
+
+/* ── Subtle Mode ─────────────────────────────────────────── */
+.patternshield-subtle .patternshield-highlight {
+  outline-width: 2px !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+.patternshield-disabled .patternshield-highlight {
+  outline: none !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+.patternshield-disabled .patternshield-highlight::before,
+.patternshield-disabled .patternshield-highlight::after { display: none !important; }
+.patternshield-disabled .ps-feedback { display: none !important; }

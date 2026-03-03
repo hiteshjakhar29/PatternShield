@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+venv/
+env/
+ENV/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Docker
+*.tar
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Models (if large)
+backend/models/
+
+# Temporary files
+*.tmp
+*.bak

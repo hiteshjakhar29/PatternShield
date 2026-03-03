@@ -1,0 +1,259 @@
+name: PatternShield CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: '3.12'
+  DOCKER_IMAGE_NAME: patternshield-api
+
+jobs:
+  # ============================================================================
+  # JOB 1: Code Quality & Linting
+  # ============================================================================
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort
+    
+    - name: Run black (code formatting check)
+      run: |
+        black --check --diff backend/
+      continue-on-error: true
+    
+    - name: Run isort (import sorting check)
+      run: |
+        isort --check-only --diff backend/
+      continue-on-error: true
+    
+    - name: Run flake8 (linting)
+      run: |
+        flake8 backend/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 backend/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+
+  # ============================================================================
+  # JOB 2: Security Scanning
+  # ============================================================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install bandit (security scanner)
+      run: pip install bandit
+    
+    - name: Run bandit
+      run: |
+        bandit -r backend/ -ll -f json -o bandit-report.json
+      continue-on-error: true
+    
+    - name: Upload security report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-report
+        path: bandit-report.json
+
+  # ============================================================================
+  # JOB 3: Unit Tests
+  # ============================================================================
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements-prod.txt
+        pip install pytest pytest-cov
+    
+    - name: Run tests
+      run: |
+        cd backend
+        pytest --cov=. --cov-report=xml --cov-report=html -v
+      continue-on-error: true
+    
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: coverage-report
+        path: backend/htmlcov/
+
+  # ============================================================================
+  # JOB 4: Docker Build
+  # ============================================================================
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+    
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile
+        push: false
+        tags: ${{ env.DOCKER_IMAGE_NAME }}:test
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+    
+    - name: Test Docker image
+      run: |
+        docker run --rm -d -p 5000:5000 --name test-container ${{ env.DOCKER_IMAGE_NAME }}:test
+        sleep 10
+        curl -f http://localhost:5000/health || exit 1
+        docker stop test-container
+    
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  # ============================================================================
+  # JOB 5: Deploy to Production (Render)
+  # ============================================================================
+  deploy-render:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Trigger Render Deploy
+      run: |
+        if [ -n "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+          echo "✅ Deployment triggered on Render"
+        else
+          echo "⚠️  RENDER_DEPLOY_HOOK not set, skipping deployment"
+        fi
+
+  # ============================================================================
+  # JOB 6: Deploy to Railway (Alternative)
+  # ============================================================================
+  deploy-railway:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && false # Disabled by default
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install Railway CLI
+      run: npm install -g @railway/cli
+    
+    - name: Deploy to Railway
+      run: railway up
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  # ============================================================================
+  # JOB 7: Notification
+  # ============================================================================
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [lint, test, docker-build, deploy-render]
+    if: always()
+    
+    steps:
+    - name: Deployment Summary
+      run: |
+        echo "## 🚀 PatternShield Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.lint.result }}" == "success" ]; then
+          echo "✅ Code Quality: Passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Code Quality: Failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ needs.test.result }}" == "success" ]; then
+          echo "✅ Tests: Passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Tests: Failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ needs.docker-build.result }}" == "success" ]; then
+          echo "✅ Docker Build: Successful" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Docker Build: Failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ needs.deploy-render.result }}" == "success" ]; then
+          echo "✅ Deployment: Successful" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️  Deployment: Skipped or Failed" >> $GITHUB_STEP_SUMMARY
+        fi
