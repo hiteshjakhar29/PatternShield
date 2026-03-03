@@ -1,0 +1,85 @@
+# PatternShield Experiment Configuration
+
+experiment:
+  name: "patternshield_v2"
+  description: "Enhanced with transformer and multimodal capabilities"
+  version: "2.0"
+  author: "Hitesh"
+  
+model:
+  type: "ensemble"  # Options: rule_based, sentiment, distilbert, ensemble, multimodal
+  components:
+    - "rule_based"
+    - "sentiment"
+    - "distilbert"
+  weights: [0.2, 0.2, 0.6]  # Weights for ensemble components
+  
+transformer:
+  base_model: "distilbert-base-uncased"
+  num_labels: 6
+  dropout: 0.3
+  max_length: 128
+  
+training:
+  batch_size: 16
+  learning_rate: 2.0e-5
+  epochs: 10
+  early_stopping: true
+  patience: 3
+  gradient_clipping: 1.0
+  warmup_ratio: 0.1
+  optimizer: "adamw"
+  scheduler: "linear"
+  weight_decay: 0.01
+  
+data:
+  train_path: "data/training_dataset.json"
+  validation_path: null  # null means split from train
+  test_path: null
+  val_split: 0.15
+  test_split: 0.15
+  augmentation: false
+  shuffle: true
+  seed: 42
+  
+features:
+  use_text_features: true
+  use_visual_features: false
+  use_structural_features: true
+  use_tfidf: false
+  tfidf_max_features: 100
+  
+evaluation:
+  metrics:
+    - "f1"
+    - "accuracy"
+    - "precision"
+    - "recall"
+  primary_metric: "f1"
+  cv_folds: 5
+  
+mlops:
+  use_mlflow: true
+  mlflow_tracking_uri: "./mlruns"
+  experiment_tracking: true
+  model_registry: true
+  log_artifacts: true
+  save_checkpoints: true
+  checkpoint_dir: "models/checkpoints"
+  
+logging:
+  level: "INFO"
+  log_file: "training.log"
+  tensorboard: true
+  tensorboard_dir: "training_logs"
+  
+deployment:
+  model_path: "models/distilbert_darkpattern/best_model"
+  confidence_threshold: 0.7
+  batch_prediction: true
+  max_batch_size: 32
+  
+reproducibility:
+  seed: 42
+  deterministic: true
+  set_all_seeds: true

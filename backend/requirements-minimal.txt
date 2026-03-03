@@ -1,0 +1,23 @@
+# Minimal Requirements for Python 3.13+
+# Install these first for quick testing
+
+# Core ML
+numpy
+scikit-learn
+scipy
+
+# Web Framework
+Flask
+Flask-CORS
+
+# NLP
+textblob
+nltk
+
+# Visualization
+matplotlib
+seaborn
+
+# Utilities
+pyyaml
+python-dotenv
