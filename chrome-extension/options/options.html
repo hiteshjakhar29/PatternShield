@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PatternShield Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="page">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-brand">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L3 6.5V12C3 16.418 7.03 20.572 12 22C16.97 20.572 21 16.418 21 12V6.5L12 2Z"
+                fill="url(#og)" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+          <path d="M8.5 12L10.5 14L15.5 9" stroke="white" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="og" x1="3" y1="2" x2="21" y2="22">
+              <stop offset="0%" stop-color="#a5b4fc"/>
+              <stop offset="100%" stop-color="#6366f1"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div>
+          <div class="sidebar-title">PatternShield</div>
+          <div class="sidebar-sub">Settings</div>
+        </div>
+      </div>
+
+      <ul class="sidebar-nav">
+        <li><a href="#scanning" class="nav-link active">Scanning</a></li>
+        <li><a href="#detection" class="nav-link">Detection</a></li>
+        <li><a href="#appearance" class="nav-link">Appearance</a></li>
+        <li><a href="#privacy"    class="nav-link">Privacy</a></li>
+        <li><a href="#network"    class="nav-link">Network</a></li>
+        <li><a href="#whitelist"  class="nav-link">Whitelist</a></li>
+        <li><a href="#about"      class="nav-link">About</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <button id="saveAllBtn" class="btn-primary btn-full">Save Settings</button>
+        <button id="resetBtn"   class="btn-ghost btn-full">Reset to Defaults</button>
+      </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main">
+
+      <section id="scanning" class="section">
+        <h2 class="section-title">Scanning</h2>
+        <p class="section-desc">Control when and how PatternShield scans pages.</p>
+
+        <div class="card">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Auto-scan on page load</div>
+              <div class="setting-desc">Automatically start detection when navigating to a new page.</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="autoScan" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Dynamic content monitoring</div>
+              <div class="setting-desc">Re-scan when page content changes (useful for SPAs).</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="dynamicScan" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Temporal tracking</div>
+              <div class="setting-desc">Record urgency elements across visits to detect fake timers.</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="enableTemporal" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </section>
+
+      <section id="detection" class="section">
+        <h2 class="section-title">Detection</h2>
+        <p class="section-desc">Tune detection sensitivity and active pattern categories.</p>
+
+        <div class="card">
+          <div class="setting-row stacked">
+            <div class="setting-info">
+              <div class="setting-name">Confidence threshold</div>
+              <div class="setting-desc">Only flag elements above this confidence level. Lower = more detections, higher = fewer false positives.</div>
+            </div>
+            <div class="slider-control">
+              <input type="range" id="confidenceThreshold" min="10" max="90" value="35" class="slider">
+              <span class="slider-val" id="thresholdDisplay">35%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Active Pattern Categories</div>
+          <div id="patternCategoryList" class="pattern-list"></div>
+        </div>
+      </section>
+
+      <section id="appearance" class="section">
+        <h2 class="section-title">Appearance</h2>
+        <p class="section-desc">Customize how PatternShield looks on pages.</p>
+
+        <div class="card">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Highlight detected elements</div>
+              <div class="setting-desc">Draw colored outlines around detected dark patterns.</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="highlightElements" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Show floating panel</div>
+              <div class="setting-desc">Display a draggable mini dashboard on each page with live results.</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="showFloatingPanel" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Rich tooltips on hover</div>
+              <div class="setting-desc">Show pattern type, confidence, severity, and explanation on hover.</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="richTooltips" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </section>
+
+      <section id="privacy" class="section">
+        <h2 class="section-title">Privacy &amp; Feedback</h2>
+        <p class="section-desc">Control how data is used and shared.</p>
+
+        <div class="card">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Show feedback buttons</div>
+              <div class="setting-desc">Show thumbs up/down on highlighted elements to improve detection.</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="enableFeedback" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Offline mode</div>
+              <div class="setting-desc">Use only locally cached rules. No network requests to the API.</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="offlineMode"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Show cookie consent analysis</div>
+              <div class="setting-desc">Flag deceptive cookie banners (pre-selected non-essential cookies, hidden reject).</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="cookieAnalysis" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </section>
+
+      <section id="network" class="section">
+        <h2 class="section-title">Network</h2>
+        <p class="section-desc">Configure backend API connection.</p>
+
+        <div class="card">
+          <div class="setting-row stacked">
+            <div class="setting-info">
+              <div class="setting-name">Backend API URL</div>
+              <div class="setting-desc">The URL of your PatternShield backend server. Defaults to localhost.</div>
+            </div>
+            <div class="input-group">
+              <input type="text" id="apiUrl" class="text-input" placeholder="http://localhost:5000">
+              <button id="testConnectionBtn" class="btn-secondary">Test</button>
+            </div>
+            <div id="connectionStatus" class="connection-status"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="whitelist" class="section">
+        <h2 class="section-title">Site Whitelist</h2>
+        <p class="section-desc">Sites that PatternShield will never scan.</p>
+
+        <div class="card">
+          <div class="setting-row stacked">
+            <div class="setting-info">
+              <div class="setting-name">Add site to whitelist</div>
+            </div>
+            <div class="input-group">
+              <input type="text" id="whitelistInput" class="text-input" placeholder="example.com">
+              <button id="addWhitelistBtn" class="btn-secondary">Add</button>
+            </div>
+          </div>
+          <div id="whitelistItems" class="whitelist-list"></div>
+        </div>
+      </section>
+
+      <section id="about" class="section">
+        <h2 class="section-title">About</h2>
+
+        <div class="card about-card">
+          <div class="about-logo">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L3 6.5V12C3 16.418 7.03 20.572 12 22C16.97 20.572 21 16.418 21 12V6.5L12 2Z"
+                    fill="url(#abg)" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+              <path d="M8.5 12L10.5 14L15.5 9" stroke="white" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+              <defs>
+                <linearGradient id="abg" x1="3" y1="2" x2="21" y2="22">
+                  <stop offset="0%" stop-color="#a5b4fc"/>
+                  <stop offset="100%" stop-color="#6366f1"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3>PatternShield v2.1</h3>
+          <p class="about-desc">
+            AI-powered dark pattern detection for Chrome.<br>
+            Detects 10 categories of manipulative UI across any website.
+          </p>
+          <div class="about-meta">
+            <span class="meta-chip">10 Pattern Categories</span>
+            <span class="meta-chip">Offline Mode</span>
+            <span class="meta-chip">Temporal Detection</span>
+            <span class="meta-chip">Explainable AI</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Data &amp; Diagnostics</div>
+          <div class="action-list">
+            <button id="exportStatsBtn" class="btn-action">Export Statistics (JSON)</button>
+            <button id="clearCacheBtn"  class="btn-action btn-danger-action">Clear Offline Cache</button>
+            <button id="clearAllBtn"    class="btn-action btn-danger-action">Reset All Data</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="../utils/config.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

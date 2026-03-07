@@ -2,289 +2,753 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PatternShield v2 — Test Page (All 10 Dark Patterns)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PatternShield v2.1 — Detection Test Page</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; }
-    .header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 40px 20px; text-align: center; }
-    .header h1 { font-size: 28px; margin-bottom: 8px; }
-    .header p { opacity: 0.9; font-size: 14px; }
-    .container { max-width: 900px; margin: 0 auto; padding: 20px; }
-    .section { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .section h2 { font-size: 18px; margin-bottom: 4px; }
-    .section .tag { display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 12px; color: white; margin-bottom: 16px; }
-    .section .desc { font-size: 13px; color: #64748b; margin-bottom: 16px; }
-    .example { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
-    .example label { font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; display: block; margin-bottom: 6px; }
-    button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
-    .btn-primary { background: #667eea; color: white; font-weight: 600; }
-    .btn-ghost { background: none; color: #94a3b8; font-size: 12px; }
-    .btn-danger { background: #ef4444; color: white; }
-    .timer { background: #dc2626; color: white; padding: 8px 16px; border-radius: 6px; display: inline-block; font-weight: 700; }
-    .small-text { font-size: 10px; color: #94a3b8; }
-    .price { font-size: 24px; font-weight: 700; }
-    .fee { font-size: 11px; color: #6b7280; margin-top: 4px; }
-    .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-    .notification { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; font-size: 13px; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+      line-height: 1.5;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      color: #fff;
+      padding: 48px 24px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.4) 0%, transparent 70%);
+    }
+    .header h1 { font-size: 32px; font-weight: 800; position: relative; }
+    .header .sub {
+      margin-top: 10px;
+      opacity: 0.7;
+      font-size: 14px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+      position: relative;
+    }
+    .header .badges {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+      position: relative;
+    }
+    .header .badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.85);
+    }
+
+    /* ── TOC ─────────────────────────────────────────────── */
+    .toc {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 12px 24px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .toc-label { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+    .toc a {
+      text-decoration: none;
+      font-size: 11px;
+      color: #6366f1;
+      padding: 3px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(99,102,241,0.3);
+      transition: background 0.15s;
+    }
+    .toc a:hover { background: rgba(99,102,241,0.1); }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .container { max-width: 920px; margin: 0 auto; padding: 24px 16px 80px; }
+
+    .section {
+      background: #fff;
+      border-radius: 14px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      border-left: 4px solid var(--pat-color, #6366f1);
+      scroll-margin-top: 60px;
+    }
+
+    .section-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+    .section-icon { font-size: 28px; flex-shrink: 0; }
+    .section-meta {}
+    .section-num { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--pat-color, #6366f1); }
+    .section h2 { font-size: 20px; font-weight: 700; margin: 2px 0 4px; }
+    .section .desc { font-size: 13px; color: #64748b; }
+
+    .examples-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .example {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+    .example-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #94a3b8;
+      margin-bottom: 10px;
+    }
+
+    /* ── Clean section ───────────────────────────────────── */
+    .clean-section {
+      background: #f0fdf4;
+      border-color: #22c55e;
+      border-left-color: #22c55e;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    button, .btn { padding: 10px 22px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: opacity 0.15s; }
+    button:hover { opacity: 0.88; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-danger  { background: #ef4444; color: #fff; }
+    .btn-lg      { font-size: 16px; padding: 14px 32px; }
+    .btn-ghost   { background: none; color: #94a3b8; font-size: 12px; border: 1px solid #e2e8f0; padding: 6px 14px; }
+    .btn-sm      { padding: 6px 14px; font-size: 12px; }
+
+    /* ── Pattern-specific elements ───────────────────────── */
+    .timer-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #dc2626;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 20px;
+      letter-spacing: 1px;
+    }
+    .stock-bar {
+      height: 6px;
+      background: #fee2e2;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .stock-fill { height: 100%; background: #ef4444; border-radius: 3px; width: 8%; }
+    .stock-label { font-size: 12px; color: #dc2626; font-weight: 600; margin-top: 6px; }
+
+    .price-card { display: flex; align-items: baseline; gap: 6px; }
+    .price-main { font-size: 32px; font-weight: 800; }
+    .price-orig { font-size: 16px; text-decoration: line-through; color: #94a3b8; }
+    .price-save { font-size: 12px; color: #22c55e; font-weight: 600; }
+    .fee-note { font-size: 11px; color: #64748b; margin-top: 6px; }
+
+    .notification {
+      background: #fff7ed;
+      border: 1px solid #fdba74;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .notification::before { content: '🔔'; font-size: 16px; }
+
+    .checkbox-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 14px; }
+    .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #6366f1; }
+
+    .trust-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: #0369a1;
+      font-weight: 600;
+    }
+
+    .plan-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 8px; }
+    .plan-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      position: relative;
+    }
+    .plan-card.featured {
+      border-color: #6366f1;
+      border-width: 2px;
+    }
+    .plan-badge {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #6366f1;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .plan-name { font-size: 13px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .plan-price { font-size: 24px; font-weight: 800; margin: 8px 0; }
+    .plan-sub { font-size: 11px; color: #94a3b8; }
+
+    .cookie-banner {
+      background: #1e293b;
+      color: #cbd5e1;
+      border-radius: 10px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .cookie-banner .text { font-size: 13px; flex: 1; min-width: 200px; }
+    .cookie-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn-cookie-accept { background: #6366f1; color: #fff; padding: 10px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 14px; }
+    .btn-cookie-reject { background: none; color: #64748b; padding: 10px 16px; border: none; cursor: pointer; font-size: 11px; }
+
+    /* ── Clean examples ──────────────────────────────────── */
+    .clean-example {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    .footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+    .footer strong { color: #6366f1; }
   </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>🛡️ PatternShield v2.0 — Test Page</h1>
-  <p>This page contains examples of all 10 dark pattern categories. Install the extension and scan this page to test detection.</p>
+  <h1>PatternShield v2.1 — Test Page</h1>
+  <p class="sub">
+    Contains verified examples of all 10 dark pattern categories plus clean control examples.
+    Install the extension and click Scan to test detection.
+  </p>
+  <div class="badges">
+    <span class="badge">10 Categories</span>
+    <span class="badge">Temporal Detection</span>
+    <span class="badge">Offline Mode</span>
+    <span class="badge">Trust Scoring</span>
+    <span class="badge">Explainability</span>
+  </div>
 </div>
+
+<nav class="toc">
+  <span class="toc-label">Jump to:</span>
+  <a href="#urgency">1. Urgency</a>
+  <a href="#confirmshaming">2. Confirmshaming</a>
+  <a href="#obstruction">3. Obstruction</a>
+  <a href="#visual">4. Visual</a>
+  <a href="#hidden-costs">5. Hidden Costs</a>
+  <a href="#forced-continuity">6. Forced Continuity</a>
+  <a href="#sneaking">7. Sneaking</a>
+  <a href="#social-proof">8. Social Proof</a>
+  <a href="#misdirection">9. Misdirection</a>
+  <a href="#price-prevent">10. Price Prevention</a>
+  <a href="#clean">✅ Clean</a>
+</nav>
 
 <div class="container">
 
-  <!-- 1. Urgency/Scarcity -->
-  <div class="section">
-    <h2>⏰ 1. Urgency / Scarcity</h2>
-    <span class="tag" style="background:#ef4444">Urgency/Scarcity</span>
-    <p class="desc">Creates false sense of urgency or scarcity to pressure quick decisions.</p>
-    <div class="example">
-      <label>Countdown Timer</label>
-      <div class="timer">⚡ Sale ends in 2:45:30 — Act Now!</div>
+  <!-- ── 1. Urgency / Scarcity ────────────────────────────── -->
+  <div class="section" id="urgency" style="--pat-color:#ef4444">
+    <div class="section-header">
+      <div class="section-icon">⏰</div>
+      <div class="section-meta">
+        <div class="section-num">Pattern 1</div>
+        <h2>Urgency / Scarcity</h2>
+        <p class="desc">Fake countdown timers, low-stock warnings, and FOMO pressure to force quick decisions.</p>
+      </div>
     </div>
-    <div class="example">
-      <label>Stock Scarcity</label>
-      <span style="color:#ef4444; font-weight:600">Only 3 left in stock! Order soon.</span>
-    </div>
-    <div class="example">
-      <label>Social Pressure</label>
-      <span style="color:#f97316">🔥 47 people are viewing this right now</span>
-    </div>
-    <div class="example">
-      <label>FOMO</label>
-      <span>Limited time offer — Don't miss out! Price increases at midnight.</span>
-    </div>
-    <div class="example">
-      <label>Flash Sale</label>
-      <span style="color:#dc2626; font-weight:700">⚡ FLASH SALE — While supplies last!</span>
-    </div>
-  </div>
 
-  <!-- 2. Confirmshaming -->
-  <div class="section">
-    <h2>😔 2. Confirmshaming</h2>
-    <span class="tag" style="background:#f97316">Confirmshaming</span>
-    <p class="desc">Uses guilt or shame to manipulate user decisions.</p>
-    <div class="example">
-      <label>Classic Shame</label>
-      <button class="btn-primary">Yes, save me money! 🎉</button>
-      <button class="btn-ghost">No thanks, I don't want to save money</button>
-    </div>
-    <div class="example">
-      <label>Health Shame</label>
-      <button class="btn-primary">Start my wellness journey</button>
-      <a href="#" style="color:#9ca3af; font-size:12px">No, I don't care about my health</a>
-    </div>
-    <div class="example">
-      <label>Status Shame</label>
-      <button class="btn-primary">Upgrade to Premium</button>
-      <a href="#" style="color:#9ca3af; font-size:12px">Decline and stay basic</a>
-    </div>
-    <div class="example">
-      <label>Financial Shame</label>
-      <a href="#" style="color:#6b7280; font-size:12px">No thanks, I enjoy overpaying</a>
-    </div>
-    <div class="example">
-      <label>Protection Shame</label>
-      <button class="btn-ghost">Continue without protection — I'll take the risk</button>
-    </div>
-  </div>
-
-  <!-- 3. Obstruction -->
-  <div class="section">
-    <h2>🚧 3. Obstruction</h2>
-    <span class="tag" style="background:#eab308">Obstruction</span>
-    <p class="desc">Makes it deliberately difficult to cancel, unsubscribe, or perform desired actions.</p>
-    <div class="example">
-      <label>Mail Requirement</label>
-      <p>To unsubscribe, please mail a written request to our headquarters at 123 Corp Ave.</p>
-    </div>
-    <div class="example">
-      <label>Multi-step Cancellation</label>
-      <p>To cancel your subscription, contact customer service during business hours (Mon-Fri 9-5 EST). Please allow 15 business days to process your request.</p>
-    </div>
-    <div class="example">
-      <label>Cancellation Fee</label>
-      <p>Early termination fee of $199 applies. Cancellation requires supervisor approval and a notarized form.</p>
-    </div>
-    <div class="example">
-      <label>Hidden Link</label>
-      <p>Manage account | Help | <a href="#" style="color:#e5e7eb; font-size:10px">Unsubscribe</a></p>
-    </div>
-  </div>
-
-  <!-- 4. Visual Interference -->
-  <div class="section">
-    <h2>👁️ 4. Visual Interference</h2>
-    <span class="tag" style="background:#a855f7">Visual Interference</span>
-    <p class="desc">Uses visual design tricks to manipulate attention and steer choices.</p>
-    <div class="example">
-      <label>Prominent Accept</label>
-      <button style="background:#667eea; color:white; padding:16px 40px; font-size:18px; font-weight:800; border:none; border-radius:8px">ACCEPT ALL ✓</button>
-      <a href="#" style="color:#d1d5db; font-size:10px; margin-left:10px">reject</a>
-    </div>
-    <div class="example">
-      <label>ALL CAPS CTA</label>
-      <button class="btn-danger" style="font-size:16px; padding:14px 30px">🎉 CLAIM YOUR FREE GIFT NOW!!!</button>
-    </div>
-    <div class="example">
-      <label>Emoji Manipulation</label>
-      <span>⭐⭐⭐⭐⭐ GET STARTED NOW — UNLOCK PREMIUM TODAY! 🔥💥</span>
-    </div>
-  </div>
-
-  <!-- 5. Hidden Costs -->
-  <div class="section">
-    <h2>💸 5. Hidden Costs</h2>
-    <span class="tag" style="background:#ec4899">Hidden Costs</span>
-    <p class="desc">Reveals additional fees or charges only at later stages.</p>
-    <div class="example">
-      <label>Processing Fee</label>
-      <div class="price">$29.99</div>
-      <div class="fee">+ $4.99 processing fee + $2.50 service fee + tax</div>
-    </div>
-    <div class="example">
-      <label>Hidden Shipping</label>
-      <p>Price does not include shipping and handling charges. Additional surcharge may apply.</p>
-    </div>
-    <div class="example">
-      <label>Checkout Surprise</label>
-      <p class="small-text">Mandatory insurance fee of $12.99 and platform convenience fee of $3.49 will be added at checkout.</p>
-    </div>
-    <div class="example">
-      <label>Booking Fee</label>
-      <p>$149/night <span style="font-size:10px; color:#94a3b8">+ $35 booking fee + $25 cleaning fee + $15 admin fee. Fees apply.</span></p>
-    </div>
-  </div>
-
-  <!-- 6. Forced Continuity -->
-  <div class="section">
-    <h2>🔄 6. Forced Continuity</h2>
-    <span class="tag" style="background:#14b8a6">Forced Continuity</span>
-    <p class="desc">Auto-enrolls users in recurring payments or traps them after free trials.</p>
-    <div class="example">
-      <label>Auto-Renew Trap</label>
-      <p>Start your free trial today! Your trial will automatically convert to a paid subscription at $19.99/month unless cancelled.</p>
-    </div>
-    <div class="example">
-      <label>Subscription Lock</label>
-      <p class="small-text">By clicking Start, you agree that your account will be automatically charged $99.99/year. Subscription auto-renews annually unless you cancel before the billing cycle ends.</p>
-    </div>
-    <div class="example">
-      <label>Subtle Auto-Charge</label>
-      <p style="font-size:11px; color:#9ca3af">Unless cancelled, you will be charged $14.99/month after the trial ends. Recurring billing applies.</p>
-    </div>
-  </div>
-
-  <!-- 7. Sneaking -->
-  <div class="section">
-    <h2>🕵️ 7. Sneaking</h2>
-    <span class="tag" style="background:#6366f1">Sneaking</span>
-    <p class="desc">Adds items, options, or subscriptions without clear user consent.</p>
-    <div class="example">
-      <label>Pre-selected Add-on</label>
-      <div class="checkbox-row"><input type="checkbox" checked> Extended warranty — $24.99 (pre-selected for your convenience)</div>
-      <div class="checkbox-row"><input type="checkbox" checked> Priority shipping — $9.99 (already selected as best value)</div>
-    </div>
-    <div class="example">
-      <label>Sneaked Item</label>
-      <div class="notification">✨ We've added Premium Protection Plan to your cart — it's the most popular choice!</div>
-    </div>
-    <div class="example">
-      <label>Default Opt-in</label>
-      <div class="checkbox-row"><input type="checkbox" checked> Opted in by default to receive marketing emails and partner offers</div>
-    </div>
-  </div>
-
-  <!-- 8. Social Proof -->
-  <div class="section">
-    <h2>👥 8. Social Proof</h2>
-    <span class="tag" style="background:#f59e0b">Social Proof</span>
-    <p class="desc">Uses potentially fake or misleading social validation to influence decisions.</p>
-    <div class="example">
-      <label>Fake Purchase Notification</label>
-      <div class="notification">🛒 Someone in Mumbai just purchased this item 2 minutes ago!</div>
-    </div>
-    <div class="example">
-      <label>Inflated Numbers</label>
-      <span>Trusted by 2,000,000+ customers worldwide! ★★★★★ (47,832 reviews)</span>
-    </div>
-    <div class="example">
-      <label>Activity Feed</label>
-      <p>🔥 Bestseller — 1,247 people bought this today! 892 customers are viewing this right now.</p>
-    </div>
-  </div>
-
-  <!-- 9. Misdirection -->
-  <div class="section">
-    <h2>🎯 9. Misdirection</h2>
-    <span class="tag" style="background:#10b981">Misdirection</span>
-    <p class="desc">Draws attention toward or away from specific choices to steer behavior.</p>
-    <div class="example">
-      <label>Recommended Plan</label>
-      <div style="display:flex; gap:12px">
-        <div style="border:1px solid #e2e8f0; padding:16px; border-radius:8px; flex:1; text-align:center">
-          <div>Basic</div><div class="price">$9</div>
+    <div class="examples-grid">
+      <div class="example">
+        <div class="example-label">Countdown timer</div>
+        <div class="timer-badge">⏱ 00:14:32</div>
+        <div style="margin-top:10px;font-size:13px;color:#dc2626;font-weight:600">
+          Flash sale ends in 14 minutes — act now!
         </div>
-        <div style="border:3px solid #667eea; padding:16px; border-radius:8px; flex:1; text-align:center; background:#f0f4ff">
-          <span class="badge" style="background:#667eea; color:white">⭐ RECOMMENDED — Best Value</span>
-          <div style="margin-top:8px">Pro</div><div class="price">$29</div>
-          <div style="font-size:11px; color:#667eea">Our pick — Most popular choice!</div>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Low stock pressure</div>
+        <div class="stock-label">Only 2 left in stock — high demand!</div>
+        <div class="stock-bar"><div class="stock-fill"></div></div>
+        <div style="margin-top:8px;font-size:13px;color:#64748b">
+          <span style="color:#ef4444;font-weight:700">Selling fast!</span> 18 people are viewing this item right now.
         </div>
-        <div style="border:1px solid #e2e8f0; padding:16px; border-radius:8px; flex:1; text-align:center">
-          <div>Enterprise</div><div class="price">$99</div>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Price increase threat</div>
+        <span style="font-size:14px;color:#dc2626;font-weight:600">
+          ⚠️ Deal expires today — price increases tomorrow. Last chance to lock in this rate.
+        </span>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Social buying pressure</div>
+        <div class="notification">
+          47 people bought this in the last 24 hours. Almost sold out — hurry!
         </div>
       </div>
     </div>
-    <div class="example">
-      <label>Highlighted Option</label>
-      <p>🏆 Smart choice! This is the perfect plan for you — the ideal option selected just for you.</p>
+  </div>
+
+  <!-- ── 2. Confirmshaming ─────────────────────────────────── -->
+  <div class="section" id="confirmshaming" style="--pat-color:#f97316">
+    <div class="section-header">
+      <div class="section-icon">😔</div>
+      <div class="section-meta">
+        <div class="section-num">Pattern 2</div>
+        <h2>Confirmshaming</h2>
+        <p class="desc">Guilt-inducing opt-out language that makes declining feel shameful or irrational.</p>
+      </div>
+    </div>
+
+    <div class="examples-grid">
+      <div class="example">
+        <div class="example-label">Savings guilt</div>
+        <button class="btn-primary btn-lg">Yes, save me 40%!</button>
+        <br><br>
+        <button class="btn-ghost">No thanks, I don't want to save money</button>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Status shame</div>
+        <button class="btn-primary">Upgrade to Premium</button>
+        <br><br>
+        <a href="#" style="font-size:12px;color:#94a3b8;display:block;margin-top:10px;text-decoration:none">
+          No thanks, I prefer to stay basic
+        </a>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Financial irrationality framing</div>
+        <button class="btn-primary">I want to pay less</button>
+        <br><br>
+        <span style="font-size:12px;color:#94a3b8;display:block;margin-top:10px;cursor:pointer">
+          No thanks, I enjoy overpaying for things
+        </span>
+      </div>
     </div>
   </div>
 
-  <!-- 10. Price Comparison Prevention -->
-  <div class="section">
-    <h2>🔒 10. Price Comparison Prevention</h2>
-    <span class="tag" style="background:#8b5cf6">Price Comparison Prevention</span>
-    <p class="desc">Makes it hard to compare prices or understand true costs.</p>
-    <div class="example">
-      <label>Confusing Billing</label>
-      <p><span class="price">$7.99</span>/mo <span class="small-text">(billed annually at $95.88/year — contact us for custom pricing)</span></p>
+  <!-- ── 3. Obstruction ───────────────────────────────────── -->
+  <div class="section" id="obstruction" style="--pat-color:#eab308">
+    <div class="section-header">
+      <div class="section-icon">🚧</div>
+      <div class="section-meta">
+        <div class="section-num">Pattern 3</div>
+        <h2>Obstruction</h2>
+        <p class="desc">Deliberately difficult cancellation flows, mandatory phone calls, and excessive friction.</p>
+      </div>
     </div>
-    <div class="example">
-      <label>Hidden Price</label>
-      <p>Starting at $4.99/user/month. Price varies — see in cart for final pricing. Call for quote on enterprise plans.</p>
-    </div>
-    <div class="example">
-      <label>Contact for Price</label>
-      <p>Custom pricing — <a href="#">Contact sales</a> for a personalized quote. Request quote for volume discounts.</p>
+
+    <div class="examples-grid">
+      <div class="example">
+        <div class="example-label">Written request requirement</div>
+        <p style="font-size:13px;color:#475569">
+          To cancel your subscription, you must send a written request by certified mail to our headquarters.
+          Allow 14 business days to process. Cancellation fee of $25 applies.
+        </p>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Mandatory phone retention</div>
+        <p style="font-size:13px;color:#475569">
+          Cancellation is only available by calling our cancellation line. Early termination fee may apply.
+          You must speak to a retention specialist before we can process your request.
+        </p>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Bureaucratic cancellation</div>
+        <p style="font-size:13px;color:#475569">
+          To unsubscribe: visit store in person with photo ID, complete cancellation form, wait 14 business days
+          for supervisor approval.
+        </p>
+      </div>
     </div>
   </div>
 
-  <!-- Clean Section (No Patterns) -->
-  <div class="section" style="border-left: 4px solid #22c55e;">
-    <h2>✅ Clean Section (No Dark Patterns)</h2>
-    <p class="desc">These elements should NOT trigger detection.</p>
-    <div class="example">
-      <label>Normal Button</label>
-      <button class="btn-primary">Add to Cart</button>
-      <button class="btn-secondary" style="margin-left:8px; background:#f3f4f6; border:1px solid #d1d5db">Cancel</button>
+  <!-- ── 4. Visual Interference ───────────────────────────── -->
+  <div class="section" id="visual" style="--pat-color:#a855f7">
+    <div class="section-header">
+      <div class="section-icon">👁️</div>
+      <div class="section-meta">
+        <div class="section-num">Pattern 4</div>
+        <h2>Visual Interference</h2>
+        <p class="desc">Design tricks that steer attention — oversized accept buttons, buried reject options.</p>
+      </div>
     </div>
-    <div class="example">
-      <label>Normal Text</label>
-      <p>Welcome to our store. Browse our collection and find something you love. Free shipping on orders over $50.</p>
-    </div>
-    <div class="example">
-      <label>Normal Info</label>
-      <p>Our business hours are Monday to Friday, 9am to 5pm. Contact us at support@example.com.</p>
+
+    <div class="examples-grid">
+      <div class="example">
+        <div class="example-label">Asymmetric cookie banner</div>
+        <div class="cookie-banner">
+          <div class="text">
+            We use cookies to enhance your experience, analyze traffic, and serve personalized content.
+          </div>
+          <div class="cookie-actions">
+            <button class="btn-cookie-accept">ACCEPT ALL COOKIES</button>
+            <button class="btn-cookie-reject">manage</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Prominent upsell, hidden skip</div>
+        <button class="btn-primary btn-lg" style="background:#7c3aed;width:100%">
+          🔥 UNLOCK PREMIUM — CLAIM YOUR FREE TRIAL NOW!
+        </button>
+        <br>
+        <a href="#" style="font-size:10px;color:#e2e8f0;display:block;margin-top:6px;text-align:center;text-decoration:none">
+          maybe later
+        </a>
+      </div>
     </div>
   </div>
 
-</div>
+  <!-- ── 5. Hidden Costs ──────────────────────────────────── -->
+  <div class="section" id="hidden-costs" style="--pat-color:#ec4899">
+    <div class="section-header">
+      <div class="section-icon">💸</div>
+      <div class="section-meta">
+        <div class="section-num">Pattern 5</div>
+        <h2>Hidden Costs</h2>
+        <p class="desc">Processing fees, surcharges, and mandatory charges revealed only at checkout.</p>
+      </div>
+    </div>
+
+    <div class="examples-grid">
+      <div class="example">
+        <div class="example-label">Processing fee reveal</div>
+        <div class="price-card">
+          <span class="price-main">$29</span>
+          <span class="price-orig">$49</span>
+          <span class="price-save">Save 40%</span>
+        </div>
+        <div class="fee-note">+ $4.99 processing fee + $2.50 service fee. Price does not include applicable taxes.</div>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Checkout surcharge</div>
+        <p style="font-size:13px;color:#475569">
+          A 3% convenience fee applies to all credit card payments. Additional booking fee of $9.99.
+          Fees apply at checkout. Plus tax and handling.
+        </p>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Late activation fee</div>
+        <p style="font-size:13px;color:#475569">
+          $0 today — activation fee of $35 billed after 30-day trial. Non-refundable setup fee applies.
+          Charges may apply. Surcharge for premium support.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 6. Forced Continuity ─────────────────────────────── -->
+  <div class="section" id="forced-continuity" style="--pat-color:#14b8a6">
+    <div class="section-header">
+      <div class="section-icon">🔄</div>
+      <div class="section-meta">
+        <div class="section-num">Pattern 6</div>
+        <h2>Forced Continuity</h2>
+        <p class="desc">Free trials that auto-convert to paid subscriptions, recurring billing traps.</p>
+      </div>
+    </div>
+
+    <div class="examples-grid">
+      <div class="example">
+        <div class="example-label">Auto-renew trap</div>
+        <p style="font-size:13px;color:#475569">
+          Start your free 30-day trial today. Your free trial will automatically convert to a paid subscription
+          at $49.99/month unless you cancel before the trial ends. You will be charged unless you cancel.
+          Auto-renew is enabled by default.
+        </p>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Subscription renewal buried</div>
+        <p style="font-size:13px;color:#475569">
+          Renews at $19.99/month automatically. Recurring charge of $239.88/year billed annually.
+          Cancel anytime — but auto-charge continues until explicitly cancelled.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 7. Sneaking ──────────────────────────────────────── -->
+  <div class="section" id="sneaking" style="--pat-color:#6366f1">
+    <div class="section-header">
+      <div class="section-icon">🕵️</div>
+      <div class="section-meta">
+        <div class="section-num">Pattern 7</div>
+        <h2>Sneaking</h2>
+        <p class="desc">Pre-checked add-ons, items added to cart without consent, default opted-in services.</p>
+      </div>
+    </div>
+
+    <div class="examples-grid">
+      <div class="example">
+        <div class="example-label">Pre-checked add-ons</div>
+        <div class="checkbox-row">
+          <input type="checkbox" checked id="insurance">
+          <label for="insurance">Travel insurance — $12.99 (pre-selected for you)</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" checked id="priority">
+          <label for="priority">Priority boarding — $8.00 (pre-checked, best value)</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="newsletter">
+          <label for="newsletter">Subscribe to newsletter</label>
+        </div>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Silently added items</div>
+        <p style="font-size:13px;color:#475569">
+          We've added 1-year Premium Protection Plan to your cart (already selected).
+          This item is included in your order by default. Opted in automatically.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 8. Social Proof ──────────────────────────────────── -->
+  <div class="section" id="social-proof" style="--pat-color:#f59e0b">
+    <div class="section-header">
+      <div class="section-icon">👥</div>
+      <div class="section-meta">
+        <div class="section-num">Pattern 8</div>
+        <h2>Social Proof</h2>
+        <p class="desc">Fake or misleading purchase notifications, inflated review counts, manufactured scarcity.</p>
+      </div>
+    </div>
+
+    <div class="examples-grid">
+      <div class="example">
+        <div class="example-label">Live purchase notification</div>
+        <div class="notification">
+          Someone in Austin, TX just purchased this 3 minutes ago. 1,247 people bought this today.
+        </div>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Inflated social validation</div>
+        <div class="trust-badge">⭐ Trusted by 2,000,000+ customers worldwide</div>
+        <div style="margin-top:8px;font-size:13px;color:#64748b">
+          <strong>Bestseller</strong> — Most popular choice. Top rated product. Customers chose this 94% of the time.
+        </div>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Peer pressure</div>
+        <p style="font-size:13px;color:#475569">
+          47 people are viewing this right now. Just purchased by someone in London.
+          Trending — over 10,000 sold this week!
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 9. Misdirection ──────────────────────────────────── -->
+  <div class="section" id="misdirection" style="--pat-color:#10b981">
+    <div class="section-header">
+      <div class="section-icon">🎯</div>
+      <div class="section-meta">
+        <div class="section-num">Pattern 9</div>
+        <h2>Misdirection</h2>
+        <p class="desc">"Best value" labels, highlighted plans, and "recommended" tags steering users toward higher-margin choices.</p>
+      </div>
+    </div>
+
+    <div class="examples-grid">
+      <div class="example">
+        <div class="example-label">Highlighted "recommended" plan</div>
+        <div class="plan-grid">
+          <div class="plan-card">
+            <div class="plan-name">Basic</div>
+            <div class="plan-price">$9</div>
+            <div class="plan-sub">per month</div>
+          </div>
+          <div class="plan-card featured">
+            <div class="plan-badge">Most Popular — Our Pick</div>
+            <div class="plan-name">Pro</div>
+            <div class="plan-price">$29</div>
+            <div class="plan-sub">per month</div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-name">Enterprise</div>
+            <div class="plan-price">$79</div>
+            <div class="plan-sub">per month</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Steering language</div>
+        <p style="font-size:13px;color:#475569">
+          <strong>Recommended for you</strong> — Our best value option. Editor's choice: most customers choose
+          the annual plan. Perfect for you — smart choice. Ideal plan for your needs.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 10. Price Comparison Prevention ──────────────────── -->
+  <div class="section" id="price-prevent" style="--pat-color:#8b5cf6">
+    <div class="section-header">
+      <div class="section-icon">🔒</div>
+      <div class="section-meta">
+        <div class="section-num">Pattern 10</div>
+        <h2>Price Comparison Prevention</h2>
+        <p class="desc">Confusing billing periods, hidden totals, and "contact for price" gatekeeping.</p>
+      </div>
+    </div>
+
+    <div class="examples-grid">
+      <div class="example">
+        <div class="example-label">Confusing billing period</div>
+        <p style="font-size:22px;font-weight:800">$8<span style="font-size:14px;color:#64748b">/mo</span></p>
+        <p style="font-size:11px;color:#94a3b8;margin-top:4px">
+          Billed annually at $96/year. Starting at $8/month (billed annually).
+        </p>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Custom pricing gatekeeping</div>
+        <p style="font-size:13px;color:#475569">
+          Custom pricing — contact us for a quote. Price varies based on usage. See pricing in cart.
+          Request a personalized quote. Call for current rates.
+        </p>
+      </div>
+
+      <div class="example">
+        <div class="example-label">Per-unit obfuscation</div>
+        <p style="font-size:13px;color:#475569">
+          Starting at $0.04 per API call / $12/month / $120/year / $0.33/day.
+          Price depends on plan tier — added at checkout.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Clean examples (control group) ───────────────────── -->
+  <div class="section clean-section" id="clean" style="--pat-color:#22c55e">
+    <div class="section-header">
+      <div class="section-icon">✅</div>
+      <div class="section-meta">
+        <div class="section-num">Control Group</div>
+        <h2>Clean / Legitimate UI</h2>
+        <p class="desc">These elements should NOT be flagged. Used to verify false-positive rate.</p>
+      </div>
+    </div>
+
+    <div class="examples-grid">
+      <div class="clean-example">
+        <div class="example-label">Standard CTA</div>
+        <button class="btn-primary">Add to cart</button>
+        <button class="btn-ghost" style="margin-left:8px">Save for later</button>
+      </div>
+
+      <div class="clean-example">
+        <div class="example-label">Transparent pricing</div>
+        <p style="font-size:14px;color:#475569">
+          $24.99/month — billed monthly, cancel anytime with no fees.
+          Free shipping on orders over $35. No hidden charges.
+        </p>
+      </div>
+
+      <div class="clean-example">
+        <div class="example-label">Honest stock information</div>
+        <p style="font-size:14px;color:#475569">
+          12 items in stock. Usually ships in 2-3 business days.
+          Free returns within 30 days.
+        </p>
+      </div>
+
+      <div class="clean-example">
+        <div class="example-label">Clear cookie consent</div>
+        <p style="font-size:13px;color:#475569">
+          We use necessary cookies only. You can accept optional analytics cookies below.
+          Reject all optional cookies by clicking "Decline". See our cookie policy.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.container -->
+
+<footer class="footer">
+  <p>
+    <strong>PatternShield v2.1</strong> — AI-powered dark pattern detection.<br>
+    This page is a test fixture. Install the extension and click Scan to verify detection accuracy.
+  </p>
+</footer>
+
+<!-- Live countdown simulation (resets to demonstrate temporal detection) -->
+<script>
+  let seconds = 874;
+  const timerEl = document.querySelector('.timer-badge');
+  if (timerEl) {
+    setInterval(() => {
+      seconds = Math.max(0, seconds - 1);
+      const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      timerEl.textContent = `⏱ 00:${m}:${s}`;
+      if (seconds === 0) seconds = 874; // reset — demonstrates resetting timer fraud
+    }, 1000);
+  }
+</script>
+
 </body>
 </html>

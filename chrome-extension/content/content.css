@@ -1,134 +1,175 @@
 /**
- * PatternShield v2.0 Content Styles
- * 10 pattern types, severity indicators, feedback UI
+ * PatternShield v2.1 Content Styles
+ * Highlights, rich tooltips, feedback buttons, severity system.
  */
 
+/* ── Base Highlight ───────────────────────────────────────────── */
 .patternshield-highlight {
-  outline: 3px solid var(--patternshield-color, #ef4444) !important;
+  outline: 2px solid var(--ps-color, #ef4444) !important;
   outline-offset: 2px !important;
   position: relative !important;
-  box-shadow: 0 0 8px var(--patternshield-color, #ef4444) !important;
-  animation: patternshield-pulse 2s infinite !important;
+  border-radius: 2px !important;
 }
 
-@keyframes patternshield-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
-}
-
-/* Tooltip */
-.patternshield-highlight::before {
-  content: attr(data-patternshield-tooltip);
-  position: absolute;
-  top: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.95);
-  color: #f1f5f9;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  white-space: nowrap;
-  z-index: 2147483647;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border-left: 3px solid var(--patternshield-color, #ef4444);
-}
-
-.patternshield-highlight::after {
-  content: '';
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 4px solid transparent;
-  border-top-color: rgba(15, 23, 42, 0.95);
-  z-index: 2147483647;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.patternshield-highlight:hover::before,
-.patternshield-highlight:hover::after { opacity: 1; }
-
-/* ── Pattern Type Colors ─────────────────────────────────── */
-.patternshield-highlight[data-patternshield="Urgency/Scarcity"]     { --patternshield-color: #ef4444; }
-.patternshield-highlight[data-patternshield="Confirmshaming"]       { --patternshield-color: #f97316; }
-.patternshield-highlight[data-patternshield="Obstruction"]          { --patternshield-color: #eab308; }
-.patternshield-highlight[data-patternshield="Visual Interference"]  { --patternshield-color: #a855f7; }
-.patternshield-highlight[data-patternshield="Hidden Costs"]         { --patternshield-color: #ec4899; }
-.patternshield-highlight[data-patternshield="Forced Continuity"]    { --patternshield-color: #14b8a6; }
-.patternshield-highlight[data-patternshield="Sneaking"]             { --patternshield-color: #6366f1; }
-.patternshield-highlight[data-patternshield="Social Proof"]         { --patternshield-color: #f59e0b; }
-.patternshield-highlight[data-patternshield="Misdirection"]         { --patternshield-color: #10b981; }
-.patternshield-highlight[data-patternshield="Price Comparison Prevention"] { --patternshield-color: #8b5cf6; }
-
-/* ── Severity Indicators ─────────────────────────────────── */
+/* Glow pulse for high/critical */
+.patternshield-highlight[data-patternshield-severity="high"],
 .patternshield-highlight[data-patternshield-severity="critical"] {
-  outline-width: 4px !important;
-  animation: patternshield-critical 1s infinite !important;
+  animation: ps-pulse 2.5s ease-in-out infinite !important;
 }
-@keyframes patternshield-critical {
-  0%, 100% { box-shadow: 0 0 8px var(--patternshield-color); }
-  50% { box-shadow: 0 0 20px var(--patternshield-color); }
+@keyframes ps-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--ps-color, #ef4444); }
+  50%       { box-shadow: 0 0 8px 2px var(--ps-color, #ef4444); }
 }
 
-/* ── Feedback Buttons ────────────────────────────────────── */
+.patternshield-highlight[data-patternshield-severity="critical"] {
+  outline-width: 3px !important;
+  animation: ps-pulse-critical 1.4s ease-in-out infinite !important;
+}
+@keyframes ps-pulse-critical {
+  0%, 100% { box-shadow: 0 0 0 0 var(--ps-color, #dc2626); }
+  50%       { box-shadow: 0 0 14px 3px var(--ps-color, #dc2626); }
+}
+
+/* ── Pattern type colors ──────────────────────────────────────── */
+.patternshield-highlight[data-patternshield="Urgency/Scarcity"]            { --ps-color: #ef4444; }
+.patternshield-highlight[data-patternshield="Confirmshaming"]              { --ps-color: #f97316; }
+.patternshield-highlight[data-patternshield="Obstruction"]                 { --ps-color: #eab308; }
+.patternshield-highlight[data-patternshield="Visual Interference"]         { --ps-color: #a855f7; }
+.patternshield-highlight[data-patternshield="Hidden Costs"]                { --ps-color: #ec4899; }
+.patternshield-highlight[data-patternshield="Forced Continuity"]           { --ps-color: #14b8a6; }
+.patternshield-highlight[data-patternshield="Sneaking"]                    { --ps-color: #6366f1; }
+.patternshield-highlight[data-patternshield="Social Proof"]                { --ps-color: #f59e0b; }
+.patternshield-highlight[data-patternshield="Misdirection"]                { --ps-color: #10b981; }
+.patternshield-highlight[data-patternshield="Price Comparison Prevention"] { --ps-color: #8b5cf6; }
+
+/* ── Rich JS Tooltip ──────────────────────────────────────────── */
+.ps-tooltip {
+  position: absolute !important;
+  z-index: 2147483646 !important;
+  background: rgba(8, 14, 30, 0.97) !important;
+  border: 1px solid rgba(99,102,241,0.35) !important;
+  border-left: 3px solid var(--ps-color, #6366f1) !important;
+  border-radius: 8px !important;
+  padding: 9px 12px !important;
+  min-width: 200px !important;
+  max-width: 300px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 11px !important;
+  color: #cbd5e1 !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  transform: translateY(4px) !important;
+  transition: opacity 0.15s, transform 0.15s !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+  bottom: calc(100% + 6px) !important;
+  left: 0 !important;
+  white-space: normal !important;
+  line-height: 1.5 !important;
+  word-break: break-word !important;
+}
+.ps-tooltip.ps-tooltip-visible {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+/* Arrow caret */
+.ps-tooltip::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: -5px !important;
+  left: 12px !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: rgba(8, 14, 30, 0.97) !important;
+  border-right: 1px solid rgba(99,102,241,0.35) !important;
+  border-bottom: 1px solid rgba(99,102,241,0.35) !important;
+  transform: rotate(45deg) !important;
+}
+
+.ps-tt-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 5px !important;
+}
+.ps-tt-pattern {
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  color: var(--ps-color, #818cf8) !important;
+}
+.ps-tt-badges { display: flex !important; gap: 4px !important; }
+.ps-tt-conf {
+  font-size: 10px !important; padding: 1px 6px !important;
+  border-radius: 6px !important; background: rgba(255,255,255,0.07) !important;
+  color: #94a3b8 !important;
+}
+.ps-tt-sev {
+  font-size: 9px !important; font-weight: 700 !important;
+  padding: 1px 6px !important; border-radius: 6px !important;
+  text-transform: uppercase !important; letter-spacing: 0.3px !important;
+}
+.ps-tt-sev-critical { background: rgba(220,38,38,0.3) !important;  color: #fca5a5 !important; }
+.ps-tt-sev-high     { background: rgba(239,68,68,0.2) !important;  color: #f87171 !important; }
+.ps-tt-sev-medium   { background: rgba(245,158,11,0.2) !important; color: #fbbf24 !important; }
+.ps-tt-sev-low      { background: rgba(234,179,8,0.15) !important; color: #fde047 !important; }
+
+.ps-tt-explanation {
+  font-size: 10px !important;
+  color: #64748b !important;
+  line-height: 1.5 !important;
+  margin-top: 5px !important;
+  padding-top: 5px !important;
+  border-top: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+/* ── Feedback Buttons ─────────────────────────────────────────── */
 .ps-feedback {
   position: absolute !important;
-  top: -12px !important;
-  right: -12px !important;
+  top: -10px !important;
+  right: 0 !important;
   display: flex !important;
   gap: 2px !important;
-  z-index: 2147483646 !important;
+  z-index: 2147483645 !important;
+  opacity: 0 !important;
+  transition: opacity 0.15s !important;
 }
+.patternshield-highlight:hover .ps-feedback { opacity: 1 !important; }
 
 .ps-fb-btn {
-  width: 24px !important;
-  height: 24px !important;
-  border: none !important;
+  width: 22px !important; height: 22px !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
   border-radius: 50% !important;
-  background: rgba(15, 23, 42, 0.9) !important;
-  color: white !important;
-  font-size: 12px !important;
+  background: rgba(8,14,30,0.92) !important;
+  color: #94a3b8 !important;
+  font-size: 11px !important;
   cursor: pointer !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   padding: 0 !important;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
-  transition: transform 0.15s !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4) !important;
+  transition: transform 0.12s !important;
 }
-
-.ps-fb-btn:hover {
-  transform: scale(1.2) !important;
-}
+.ps-fb-btn:hover { transform: scale(1.2) !important; }
 
 .ps-fb-thanks {
   font-size: 10px !important;
   color: #22c55e !important;
-  background: rgba(15, 23, 42, 0.9) !important;
-  padding: 2px 8px !important;
-  border-radius: 10px !important;
+  background: rgba(8,14,30,0.9) !important;
+  padding: 2px 7px !important;
+  border-radius: 8px !important;
   white-space: nowrap !important;
 }
 
-/* ── Subtle Mode ─────────────────────────────────────────── */
+/* ── Subtle / Disabled Modes ──────────────────────────────────── */
 .patternshield-subtle .patternshield-highlight {
-  outline-width: 2px !important;
-  box-shadow: none !important;
+  outline-width: 1px !important;
   animation: none !important;
+  box-shadow: none !important;
 }
-
 .patternshield-disabled .patternshield-highlight {
   outline: none !important;
-  box-shadow: none !important;
   animation: none !important;
+  box-shadow: none !important;
 }
-.patternshield-disabled .patternshield-highlight::before,
-.patternshield-disabled .patternshield-highlight::after { display: none !important; }
-.patternshield-disabled .ps-feedback { display: none !important; }
+.patternshield-disabled .ps-feedback,
+.patternshield-disabled .ps-tooltip { display: none !important; }

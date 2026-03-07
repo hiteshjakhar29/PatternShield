@@ -1,0 +1,184 @@
+/* ============================================================
+   PatternShield — Floating In-Page Panel
+   High z-index, scoped styles to avoid conflicts with host page
+   ============================================================ */
+
+#ps-panel {
+  /* Reset host-page styles first so nothing bleeds through */
+  all: unset;
+
+  /* Layout & positioning */
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  width: 220px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+
+  /* Visual */
+  background: rgba(15, 23, 42, 0.97) !important;
+  border: 1px solid rgba(99,102,241,0.35) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(12px) !important;
+
+  /* Typography */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 12px !important;
+  color: #f1f5f9 !important;
+  line-height: 1.4 !important;
+
+  /* Behaviour */
+  z-index: 2147483640 !important;
+  user-select: none !important;
+  transition: box-shadow 0.2s !important;
+}
+
+/* ── Header ────────────────────────────────────────── */
+#ps-panel .ps-panel-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 8px 10px !important;
+  background: rgba(30, 27, 75, 0.9) !important;
+  border-bottom: 1px solid rgba(99,102,241,0.2) !important;
+  cursor: grab !important;
+}
+
+#ps-panel .ps-panel-brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+#ps-panel .ps-panel-title {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #e0e7ff !important;
+  letter-spacing: -0.2px !important;
+}
+
+#ps-panel .ps-panel-controls {
+  display: flex !important;
+  gap: 4px !important;
+}
+
+#ps-panel .ps-panel-btn {
+  all: unset !important;
+  width: 18px !important;
+  height: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  font-size: 10px !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  transition: background 0.15s, color 0.15s !important;
+}
+#ps-panel .ps-panel-btn:hover {
+  background: rgba(255,255,255,0.08) !important;
+  color: #f1f5f9 !important;
+}
+
+/* ── Body ──────────────────────────────────────────── */
+#ps-panel .ps-panel-body {
+  padding: 10px !important;
+}
+
+/* Status row */
+#ps-panel .ps-panel-status {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-bottom: 8px !important;
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+}
+
+#ps-panel .ps-status-dot {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+}
+#ps-panel .ps-scanning {
+  background: #f59e0b !important;
+  box-shadow: 0 0 5px #f59e0b !important;
+  animation: ps-blink 0.9s infinite !important;
+}
+#ps-panel .ps-clean {
+  background: #22c55e !important;
+  box-shadow: 0 0 5px #22c55e !important;
+}
+#ps-panel .ps-warn {
+  background: #ef4444 !important;
+  box-shadow: 0 0 5px #ef4444 !important;
+}
+
+@keyframes ps-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* Score row */
+#ps-panel .ps-panel-score {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+  padding: 6px 8px !important;
+  background: rgba(30,41,59,0.7) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+#ps-panel .ps-score-grade {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  color: white !important;
+  flex-shrink: 0 !important;
+  background: #22c55e !important;
+}
+
+#ps-panel .ps-score-num {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  color: #f1f5f9 !important;
+  line-height: 1 !important;
+}
+#ps-panel .ps-score-max {
+  font-size: 10px !important;
+  color: #64748b !important;
+  font-weight: 400 !important;
+}
+#ps-panel .ps-score-risk {
+  font-size: 10px !important;
+  color: #94a3b8 !important;
+  margin-top: 2px !important;
+}
+
+/* Pattern chips */
+#ps-panel .ps-panel-chips {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+}
+#ps-panel .ps-chip {
+  display: inline-block !important;
+  padding: 2px 7px !important;
+  border-radius: 10px !important;
+  border: 1px solid currentColor !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  opacity: 0.85 !important;
+  cursor: default !important;
+  white-space: nowrap !important;
+}

@@ -17,44 +17,36 @@ jobs:
   lint:
     name: Code Quality
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    
-    - name: Cache pip packages
-      uses: actions/cache@v3
+
+    - uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8 black isort
-    
-    - name: Run black (code formatting check)
-      run: |
-        black --check --diff backend/
+        key: ${{ runner.os }}-pip-lint-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: ${{ runner.os }}-pip-lint-
+
+    - name: Install linting tools
+      run: pip install flake8 black isort
+
+    - name: black (formatting check)
+      run: black --check --diff backend/
       continue-on-error: true
-    
-    - name: Run isort (import sorting check)
-      run: |
-        isort --check-only --diff backend/
+
+    - name: isort (import order)
+      run: isort --check-only --diff backend/
       continue-on-error: true
-    
-    - name: Run flake8 (linting)
-      run: |
-        flake8 backend/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 backend/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      continue-on-error: true
+
+    - name: flake8 (errors only)
+      run: flake8 backend/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    - name: flake8 (style warnings)
+      run: flake8 backend/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
   # ============================================================================
   # JOB 2: Security Scanning
@@ -62,97 +54,91 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    
-    - name: Install bandit (security scanner)
+
+    - name: Install bandit
       run: pip install bandit
-    
+
     - name: Run bandit
-      run: |
-        bandit -r backend/ -ll -f json -o bandit-report.json
+      run: bandit -r backend/ -ll -f json -o bandit-report.json
       continue-on-error: true
-    
-    - name: Upload security report
-      uses: actions/upload-artifact@v3
+
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-report
         path: bandit-report.json
 
   # ============================================================================
-  # JOB 3: Unit Tests
+  # JOB 3: Unit & Integration Tests
   # ============================================================================
   test:
-    name: Unit Tests
+    name: Tests
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    
-    - name: Cache pip packages
-      uses: actions/cache@v3
+
+    - uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
+        restore-keys: ${{ runner.os }}-pip-
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r backend/requirements-prod.txt
         pip install pytest pytest-cov
-    
+        python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('averaged_perceptron_tagger', quiet=True)" || true
+
     - name: Run tests
       run: |
         cd backend
-        pytest --cov=. --cov-report=xml --cov-report=html -v
-      continue-on-error: true
-    
-    - name: Upload coverage reports
-      uses: actions/upload-artifact@v3
+        pytest tests/ --cov=. --cov-report=xml --cov-report=html \
+               --cov-omit="tests/*,venv/*,*/.venv/*" \
+               -v --tb=short
+      env:
+        RATE_LIMIT_ENABLED: "false"
+        API_KEY_REQUIRED: "false"
+        FEEDBACK_FILE: "/tmp/ci_feedback.jsonl"
+        TEMPORAL_FILE: "/tmp/ci_temporal.json"
+
+    - uses: actions/upload-artifact@v4
       if: always()
       with:
         name: coverage-report
         path: backend/htmlcov/
 
   # ============================================================================
-  # JOB 4: Docker Build
+  # JOB 4: Docker Build & Smoke Test
   # ============================================================================
   docker-build:
     name: Docker Build
     runs-on: ubuntu-latest
-    needs: [lint, test]
-    
+    needs: [ lint, test ]
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Cache Docker layers
-      uses: actions/cache@v3
+    - uses: actions/checkout@v4
+
+    - uses: docker/setup-buildx-action@v3
+
+    - uses: actions/cache@v4
       with:
         path: /tmp/.buildx-cache
         key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
-    
+        restore-keys: ${{ runner.os }}-buildx-
+
     - name: Build Docker image
       uses: docker/build-push-action@v5
       with:
@@ -162,98 +148,62 @@ jobs:
         tags: ${{ env.DOCKER_IMAGE_NAME }}:test
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-    
-    - name: Test Docker image
+
+    - name: Smoke test container
       run: |
-        docker run --rm -d -p 5000:5000 --name test-container ${{ env.DOCKER_IMAGE_NAME }}:test
-        sleep 10
-        curl -f http://localhost:5000/health || exit 1
-        docker stop test-container
-    
-    - name: Move cache
+        docker run --rm -d -p 5000:5000 \
+          -e RATE_LIMIT_ENABLED=false \
+          -e API_KEY_REQUIRED=false \
+          --name ps-test ${{ env.DOCKER_IMAGE_NAME }}:test
+        sleep 8
+        curl -sf http://localhost:5000/health | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['status']=='healthy', d"
+        docker stop ps-test
+
+    - name: Move buildx cache
       run: |
         rm -rf /tmp/.buildx-cache
         mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   # ============================================================================
-  # JOB 5: Deploy to Production (Render)
+  # JOB 5: Deploy to Render (main branch only)
   # ============================================================================
   deploy-render:
     name: Deploy to Render
     runs-on: ubuntu-latest
-    needs: [docker-build]
+    needs: [ docker-build ]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
+
     steps:
-    - name: Trigger Render Deploy
+    - name: Trigger Render deploy hook
       run: |
         if [ -n "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
-          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
-          echo "✅ Deployment triggered on Render"
+          curl -sf -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+          echo "Deployment triggered on Render"
         else
-          echo "⚠️  RENDER_DEPLOY_HOOK not set, skipping deployment"
+          echo "RENDER_DEPLOY_HOOK not configured — skipping"
         fi
 
   # ============================================================================
-  # JOB 6: Deploy to Railway (Alternative)
-  # ============================================================================
-  deploy-railway:
-    name: Deploy to Railway
-    runs-on: ubuntu-latest
-    needs: [docker-build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && false # Disabled by default
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Install Railway CLI
-      run: npm install -g @railway/cli
-    
-    - name: Deploy to Railway
-      run: railway up
-      env:
-        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-  # ============================================================================
-  # JOB 7: Notification
+  # JOB 6: Summary
   # ============================================================================
   notify:
-    name: Notify Results
+    name: Pipeline Summary
     runs-on: ubuntu-latest
-    needs: [lint, test, docker-build, deploy-render]
+    needs: [ lint, test, docker-build, deploy-render ]
     if: always()
-    
+
     steps:
-    - name: Deployment Summary
+    - name: Write summary
       run: |
-        echo "## 🚀 PatternShield Deployment Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        if [ "${{ needs.lint.result }}" == "success" ]; then
-          echo "✅ Code Quality: Passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Code Quality: Failed" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "${{ needs.test.result }}" == "success" ]; then
-          echo "✅ Tests: Passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Tests: Failed" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "${{ needs.docker-build.result }}" == "success" ]; then
-          echo "✅ Docker Build: Successful" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Docker Build: Failed" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "${{ needs.deploy-render.result }}" == "success" ]; then
-          echo "✅ Deployment: Successful" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "⚠️  Deployment: Skipped or Failed" >> $GITHUB_STEP_SUMMARY
-        fi
+        {
+          echo "## PatternShield CI Summary"
+          echo ""
+          echo "| Job | Result |"
+          echo "|-----|--------|"
+          echo "| Lint   | ${{ needs.lint.result }} |"
+          echo "| Tests  | ${{ needs.test.result }} |"
+          echo "| Docker | ${{ needs.docker-build.result }} |"
+          echo "| Deploy | ${{ needs.deploy-render.result }} |"
+          echo ""
+          echo "**Branch:** \`${{ github.ref_name }}\`  |  **SHA:** \`${{ github.sha }}\`"
+        } >> $GITHUB_STEP_SUMMARY

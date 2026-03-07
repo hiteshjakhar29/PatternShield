@@ -1,15 +1,28 @@
 /**
- * PatternShield Background Service Worker v2.1 (FIXED)
+ * PatternShield Background Service Worker v2.1
  * Proxies ALL API calls so content scripts on HTTPS pages
  * can reach the HTTP localhost API without mixed-content blocking.
- *
- * FIX: Storage key now matches config.js ('patternshield_settings')
  */
 
 const DEFAULT_API_URL = 'http://127.0.0.1:5000';
-const SETTINGS_KEY = 'patternshield_settings'; // MUST match CONFIG.STORAGE_KEYS.SETTINGS
+const SETTINGS_KEY    = 'patternshield_settings'; // must match CONFIG.STORAGE_KEYS.SETTINGS
 
-// ── API Proxy ───────────────────────────────────────────────────────
+const DEFAULT_INSTALL_SETTINGS = {
+  autoScan:            true,
+  dynamicScan:         true,
+  enableTemporal:      true,
+  highlightElements:   true,
+  showFloatingPanel:   true,
+  richTooltips:        true,
+  enableFeedback:      true,
+  offlineMode:         false,
+  cookieAnalysis:      true,
+  confidenceThreshold: 0.35,
+  apiUrl:              DEFAULT_API_URL,
+  enabledPatterns:     {},
+};
+
+// ── API Proxy ────────────────────────────────────────────────────────
 
 async function proxyAPICall(request) {
   const { endpoint, method, body } = request;
@@ -48,7 +61,7 @@ async function proxyAPICall(request) {
   }
 }
 
-// ── Message Listener ────────────────────────────────────────────────
+// ── Message Listener ─────────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'apiProxy') {
@@ -62,7 +75,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const count = msg.count || 0;
     chrome.action.setBadgeText({ text: count > 0 ? String(count) : '' });
     chrome.action.setBadgeBackgroundColor({
-      color: count > 5 ? '#EF4444' : count > 0 ? '#F59E0B' : '#10B981'
+      color: count >= 10 ? '#DC2626' : count > 4 ? '#EF4444' : count > 0 ? '#F59E0B' : '#10B981',
     });
     sendResponse({ success: true });
     return false;
@@ -73,27 +86,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return false;
   }
 
+  if (msg.action === 'showNotification') {
+    const { count, domain } = msg;
+    chrome.notifications.create(`ps-scan-${Date.now()}`, {
+      type:    'basic',
+      iconUrl: 'icons/icon48.png',
+      title:   'PatternShield',
+      message: `${count} dark pattern${count !== 1 ? 's' : ''} detected on ${domain}`,
+      priority: 1,
+    });
+    sendResponse({ success: true });
+    return false;
+  }
+
   return false;
 });
 
-// ── Install ─────────────────────────────────────────────────────────
+// ── Install / Upgrade ────────────────────────────────────────────────
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('PatternShield v2.1 installed');
-  chrome.storage.sync.get(SETTINGS_KEY, (result) => {
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+  console.log(`PatternShield v2.1 — ${reason}`);
+  chrome.storage.sync.get(SETTINGS_KEY, result => {
     if (!result[SETTINGS_KEY]) {
-      chrome.storage.sync.set({
-        [SETTINGS_KEY]: {
-          autoScan: true,
-          highlightElements: true,
-          offlineMode: false,
-          enableFeedback: true,
-          enableTemporal: true,
-          confidenceThreshold: 0.35,
-          apiUrl: DEFAULT_API_URL,
-          enabledPatterns: {},
-        }
-      });
+      chrome.storage.sync.set({ [SETTINGS_KEY]: DEFAULT_INSTALL_SETTINGS });
+      console.log('[PatternShield] Default settings initialised');
+    } else {
+      // Merge in any new keys added in this version without overwriting user prefs
+      const merged = { ...DEFAULT_INSTALL_SETTINGS, ...result[SETTINGS_KEY] };
+      chrome.storage.sync.set({ [SETTINGS_KEY]: merged });
     }
   });
 });

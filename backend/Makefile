@@ -1,7 +1,7 @@
 # Makefile for PatternShield Backend
 # Provides convenient commands for development and deployment
 
-.PHONY: help install dev prod build run test clean deploy
+.PHONY: help install dev prod build run test test-cov test-fast test-local test-docker test-deployed clean deploy lint format security
 
 # Default target
 .DEFAULT_GOAL := help
@@ -110,22 +110,37 @@ inspect: ## Inspect container
 # TESTING
 # ============================================================================
 
-test: ## Run production tests
-	$(PYTHON) test_production.py
+test: ## Run all tests with pytest
+	cd $(shell pwd) && RATE_LIMIT_ENABLED=false API_KEY_REQUIRED=false \
+		FEEDBACK_FILE=/tmp/test_feedback.jsonl TEMPORAL_FILE=/tmp/test_temporal.json \
+		pytest tests/ -v --tb=short
 
-test-local: ## Test local server
-	$(PYTHON) test_production.py --url http://localhost:5000
+test-cov: ## Run tests with HTML coverage report
+	cd $(shell pwd) && RATE_LIMIT_ENABLED=false API_KEY_REQUIRED=false \
+		FEEDBACK_FILE=/tmp/test_feedback.jsonl TEMPORAL_FILE=/tmp/test_temporal.json \
+		pytest tests/ --cov=. --cov-report=html --cov-report=term-missing \
+		--cov-omit="tests/*,venv/*,.venv/*" -v --tb=short
+	@echo "✅ Coverage report: htmlcov/index.html"
 
-test-docker: ## Test Docker container
+test-fast: ## Run tests, stop on first failure
+	cd $(shell pwd) && RATE_LIMIT_ENABLED=false API_KEY_REQUIRED=false \
+		FEEDBACK_FILE=/tmp/test_feedback.jsonl TEMPORAL_FILE=/tmp/test_temporal.json \
+		pytest tests/ -x --tb=short -q
+
+test-local: ## Smoke-test a locally running server
+	@curl -sf http://localhost:5000/health | $(PYTHON) -m json.tool || echo "❌ Server not responding"
+
+test-docker: ## Build image, run container, smoke-test, then stop
 	@echo "Starting container for testing..."
 	@make run > /dev/null 2>&1
-	@sleep 5
-	@$(PYTHON) test_production.py --url http://localhost:5000
+	@sleep 6
+	@curl -sf http://localhost:5000/health | $(PYTHON) -c \
+		"import sys,json; d=json.load(sys.stdin); assert d['status']=='healthy', d; print('✅ Smoke test passed')"
 	@make stop > /dev/null 2>&1
 
-test-deployed: ## Test deployed server (provide URL)
+test-deployed: ## Smoke-test deployed server (prompts for URL)
 	@read -p "Enter deployed URL: " url; \
-	$(PYTHON) test_production.py --url $$url
+	curl -sf $$url/health | $(PYTHON) -m json.tool
 
 health: ## Check health endpoint
 	@curl -f http://localhost:5000/health | python3 -m json.tool || echo "❌ Server not responding"
@@ -134,16 +149,27 @@ health: ## Check health endpoint
 # CODE QUALITY
 # ============================================================================
 
-lint: ## Run linting checks
-	flake8 *.py --max-line-length=127 --exclude=venv,__pycache__ || true
+lint: ## Run flake8, black check, and isort check across backend/
+	@echo "--- flake8 (errors) ---"
+	flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics \
+		--exclude=venv,.venv,__pycache__,tests
+	@echo "--- flake8 (style) ---"
+	flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics \
+		--exclude=venv,.venv,__pycache__,tests
+	@echo "--- black (check) ---"
+	black --check --diff . --exclude="/(venv|\.venv|__pycache__|tests)/" || true
+	@echo "--- isort (check) ---"
+	isort --check-only --diff . --skip venv --skip .venv || true
 	@echo "✅ Linting complete"
 
-format: ## Format code with black
-	black *.py
+format: ## Auto-format code with black and isort
+	black . --exclude="/(venv|\.venv|__pycache__|tests)/"
+	isort . --skip venv --skip .venv
 	@echo "✅ Code formatted"
 
-security: ## Run security checks with bandit
-	bandit -r . -ll -f json -o bandit-report.json || true
+security: ## Run bandit security scan across backend/
+	bandit -r . -ll -f json -o bandit-report.json \
+		--exclude ./venv,./\.venv,./tests || true
 	@echo "✅ Security scan complete (see bandit-report.json)"
 
 # ============================================================================
@@ -231,9 +257,9 @@ quick-start: build run ## Quick start: build and run
 	@echo "   Access at: http://localhost:5000"
 	@make health
 
-quick-test: build test-docker ## Quick test: build and test
+quick-test: test ## Run pytest suite (fast, no Docker needed)
 	@echo "✅ Quick test complete!"
 
-full-check: build test-docker lint security ## Full pre-deployment check
+full-check: lint test security build test-docker ## Full pre-deployment check: lint → pytest → bandit → Docker build → smoke test
 	@echo "✅ All checks passed!"
 	@echo "   Ready for deployment"

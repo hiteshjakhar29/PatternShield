@@ -156,6 +156,7 @@ class DarkPatternDetector:
                 r"price\s*(does\s*)?not\s*include",
                 r"(fees?|charges?)\s*(may\s*)?apply",
                 r"\$\d+\.?\d*\s*(fee|charge|surcharge)",
+                r"\d[\d,.]*\s*%\s*surcharge",
                 r"(mandatory|required|non.?refundable)\s*(fee|charge|deposit)",
             ],
             "negative_keywords": ["free shipping", "no hidden fees", "no additional charges", "tax included"],

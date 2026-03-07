@@ -7,147 +7,279 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="container">
-    <!-- Header -->
-    <header class="header">
-      <div class="logo">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-          <path d="M12 12L12 22" stroke="currentColor" stroke-width="2"/>
-          <path d="M12 12L2 7" stroke="currentColor" stroke-width="2"/>
-          <path d="M12 12L22 7" stroke="currentColor" stroke-width="2"/>
+
+  <!-- ── Header ─────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-brand">
+      <svg class="brand-icon" width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L3 6.5V12C3 16.418 7.03 20.572 12 22C16.97 20.572 21 16.418 21 12V6.5L12 2Z"
+              fill="url(#sg)" stroke="rgba(255,255,255,0.25)" stroke-width="0.5"/>
+        <path d="M8.5 12L10.5 14L15.5 9" stroke="white" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <defs>
+          <linearGradient id="sg" x1="3" y1="2" x2="21" y2="22">
+            <stop offset="0%" stop-color="#a5b4fc"/>
+            <stop offset="100%" stop-color="#6366f1"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="brand-text">
+        <span class="brand-name">PatternShield</span>
+        <span class="brand-tagline">Dark Pattern Detector</span>
+      </div>
+    </div>
+    <div class="header-status">
+      <span class="status-dot" id="statusDot"></span>
+      <span class="status-label" id="statusText">Connecting…</span>
+    </div>
+  </header>
+
+  <!-- ── Domain Bar ─────────────────────────────────── -->
+  <div class="domain-bar">
+    <div class="domain-info">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="domain-icon-svg">
+        <circle cx="12" cy="12" r="10" stroke="#64748b" stroke-width="1.5"/>
+        <path d="M2 12h20M12 2c-2.5 3-4 6.5-4 10s1.5 7 4 10M12 2c2.5 3 4 6.5 4 10s-1.5 7-4 10"
+              stroke="#64748b" stroke-width="1.5"/>
+      </svg>
+      <span class="domain-name" id="domainName">Loading…</span>
+    </div>
+    <div class="domain-actions">
+      <button id="rescanBtn" class="btn-scan">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <path d="M23 4v6h-6M1 20v-6h6M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <h1>PatternShield <small>v2</small></h1>
-      </div>
-      <div class="status">
-        <span id="statusDot" class="status-dot"></span>
-        <span id="statusText">Checking...</span>
-      </div>
-    </header>
+        Scan
+      </button>
+      <button id="clearBtn" class="btn-ghost" title="Clear highlights">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
 
-    <!-- Tab Navigation -->
-    <nav class="tabs">
-      <button class="tab active" data-tab="scan">🔍 Scan</button>
-      <button class="tab" data-tab="settings">⚙️ Settings</button>
-      <button class="tab" data-tab="stats">📊 Stats</button>
-    </nav>
+  <!-- ── Tab Navigation ────────────────────────────── -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="scan">Scan</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+    <button class="tab-btn" data-tab="stats">Analytics</button>
+  </nav>
 
-    <!-- SCAN TAB -->
-    <div id="tab-scan" class="tab-content active">
-      <!-- Site Score -->
-      <div class="site-score" id="siteScoreCard" style="display:none;">
-        <div class="score-badge" id="scoreGrade">A</div>
-        <div class="score-info">
-          <div class="score-label">Site Score: <strong id="scoreValue">100</strong>/100</div>
-          <div class="score-risk" id="scoreRisk">Low Risk</div>
-        </div>
+  <!-- ══════════════════════════════════════════════════
+       SCAN TAB
+  ═══════════════════════════════════════════════════ -->
+  <div id="tab-scan" class="tab-pane active">
+
+    <!-- Trust Score Card -->
+    <div class="trust-card">
+      <div class="trust-gauge-wrap">
+        <svg class="trust-gauge" viewBox="0 0 100 100">
+          <!-- Background track -->
+          <circle class="gauge-track" cx="50" cy="50" r="36"/>
+          <!-- Animated fill -->
+          <circle class="gauge-fill" id="gaugeFill" cx="50" cy="50" r="36"
+                  style="stroke-dasharray:226;stroke-dashoffset:226;"/>
+          <!-- Grade letter -->
+          <text class="gauge-grade" id="gaugeGrade" x="50" y="46" text-anchor="middle">—</text>
+          <text class="gauge-sublabel" x="50" y="60" text-anchor="middle">Grade</text>
+        </svg>
       </div>
-
-      <!-- Stats -->
-      <div class="stats-summary">
-        <div class="stat-card">
-          <div class="stat-value" id="detectionCount">0</div>
-          <div class="stat-label">Patterns</div>
+      <div class="trust-details">
+        <div class="trust-score-line">
+          Trust Score:&nbsp;<strong id="trustScoreNum">—</strong><span class="trust-denom">/100</span>
         </div>
-        <div class="stat-card">
-          <div class="stat-value" id="severityMax">—</div>
-          <div class="stat-label">Severity</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="confidenceAvg">0%</div>
-          <div class="stat-label">Confidence</div>
-        </div>
-      </div>
-
-      <!-- Actions -->
-      <div class="actions">
-        <button id="rescanBtn" class="btn btn-primary">🔄 Rescan</button>
-        <button id="clearBtn" class="btn btn-secondary">✕ Clear</button>
-      </div>
-
-      <!-- Detections -->
-      <div class="section">
-        <h3 class="section-title">Detected Patterns</h3>
-        <div id="detectionsList" class="detections-list">
-          <div class="empty-state"><p>Scanning page...</p></div>
-        </div>
+        <div class="trust-risk-badge" id="trustRiskBadge">Run a scan</div>
+        <div class="trust-meta" id="trustMeta">Click Scan to analyze this page</div>
       </div>
     </div>
 
-    <!-- SETTINGS TAB -->
-    <div id="tab-settings" class="tab-content">
-      <div class="section">
-        <h3 class="section-title">General</h3>
-        <label class="toggle-setting">
+    <!-- Pattern type chips (hidden until detections exist) -->
+    <div class="chip-row" id="patternChips" style="display:none"></div>
+
+    <!-- Idle state -->
+    <div class="empty-state" id="idleState">
+      <svg class="empty-icon" width="40" height="40" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L3 6.5V12C3 16.418 7.03 20.572 12 22C16.97 20.572 21 16.418 21 12V6.5L12 2Z"
+              stroke="#334155" stroke-width="1.5"/>
+        <circle cx="12" cy="12" r="3" stroke="#334155" stroke-width="1.5"/>
+      </svg>
+      <p class="empty-title">No scan yet</p>
+      <p class="empty-sub">Click <strong>Scan</strong> to analyze this page<br>or enable Auto-scan in Settings</p>
+    </div>
+
+    <!-- Clean / safe state -->
+    <div class="empty-state success-state" id="cleanState" style="display:none">
+      <svg class="empty-icon" width="40" height="40" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L3 6.5V12C3 16.418 7.03 20.572 12 22C16.97 20.572 21 16.418 21 12V6.5L12 2Z"
+              fill="rgba(34,197,94,0.12)" stroke="#22c55e" stroke-width="1.5"/>
+        <path d="M8.5 12L10.5 14L15.5 9" stroke="#22c55e" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p class="empty-title" style="color:#22c55e">Page looks clean!</p>
+      <p class="empty-sub">No dark patterns detected above the confidence threshold</p>
+    </div>
+
+    <!-- Detection cards list -->
+    <div id="detectionsList" style="display:none">
+      <div class="list-header">
+        <span class="list-title">Detected Patterns</span>
+        <span class="list-count" id="listCount">0</span>
+      </div>
+      <div class="detections-scroll" id="detectionsScroll"></div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SETTINGS TAB
+  ═══════════════════════════════════════════════════ -->
+  <div id="tab-settings" class="tab-pane">
+
+    <div class="settings-group">
+      <div class="sg-label">Scanning</div>
+      <label class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-name">Auto-scan pages</span>
+          <span class="toggle-desc">Scan automatically on page load</span>
+        </div>
+        <label class="toggle-switch">
           <input type="checkbox" id="autoScanToggle" checked>
-          <span>Auto-scan pages</span>
+          <span class="toggle-track"></span>
         </label>
-        <label class="toggle-setting">
+      </label>
+      <label class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-name">Highlight detections</span>
+          <span class="toggle-desc">Outline flagged elements on page</span>
+        </div>
+        <label class="toggle-switch">
           <input type="checkbox" id="highlightToggle" checked>
-          <span>Highlight patterns</span>
+          <span class="toggle-track"></span>
         </label>
-        <label class="toggle-setting">
-          <input type="checkbox" id="offlineToggle">
-          <span>Offline mode (local rules only)</span>
+      </label>
+      <label class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-name">Floating panel</span>
+          <span class="toggle-desc">Show live summary widget on page</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="floatingPanelToggle" checked>
+          <span class="toggle-track"></span>
         </label>
-        <label class="toggle-setting">
-          <input type="checkbox" id="feedbackToggle" checked>
-          <span>Show feedback buttons</span>
-        </label>
-        <label class="toggle-setting">
+      </label>
+      <label class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-name">Temporal tracking</span>
+          <span class="toggle-desc">Detect fake timers across visits</span>
+        </div>
+        <label class="toggle-switch">
           <input type="checkbox" id="temporalToggle" checked>
-          <span>Temporal detection</span>
+          <span class="toggle-track"></span>
         </label>
-      </div>
+      </label>
+    </div>
 
-      <div class="section">
-        <h3 class="section-title">Confidence Threshold</h3>
-        <div class="slider-row">
-          <input type="range" id="thresholdSlider" min="10" max="90" value="35" class="slider">
-          <span id="thresholdValue" class="slider-value">35%</span>
+    <div class="settings-group">
+      <div class="sg-label">Confidence Threshold</div>
+      <div class="slider-wrap">
+        <div class="slider-labels">
+          <span>Sensitive</span><span>Strict</span>
         </div>
-      </div>
-
-      <div class="section">
-        <h3 class="section-title">API URL</h3>
-        <div class="input-row">
-          <input type="text" id="apiUrlInput" class="text-input" placeholder="http://localhost:5000">
-          <button id="saveUrlBtn" class="btn btn-small">Save</button>
+        <input type="range" id="thresholdSlider" min="10" max="90" value="35" class="range-slider">
+        <div class="slider-value-row">
+          <span class="slider-hint">Flag patterns above</span>
+          <strong id="thresholdValue" class="slider-value">35%</strong>
         </div>
-      </div>
-
-      <div class="section">
-        <h3 class="section-title">Pattern Types</h3>
-        <div id="patternToggles" class="pattern-toggles"></div>
-      </div>
-
-      <div class="section">
-        <h3 class="section-title">Whitelist</h3>
-        <button id="whitelistBtn" class="btn btn-secondary btn-full">
-          Add current site to whitelist
-        </button>
       </div>
     </div>
 
-    <!-- STATS TAB -->
-    <div id="tab-stats" class="tab-content">
-      <div class="section">
-        <h3 class="section-title">Detection History</h3>
-        <div class="stat-row"><span>Total Scans</span><strong id="totalScans">0</strong></div>
-        <div class="stat-row"><span>Total Detections</span><strong id="totalDetections">0</strong></div>
-      </div>
-      <div class="section">
-        <h3 class="section-title">By Pattern Type</h3>
-        <div id="patternBreakdown" class="pattern-breakdown"></div>
-      </div>
-      <div class="section">
-        <h3 class="section-title">Top Sites</h3>
-        <div id="topSites" class="top-sites"></div>
-      </div>
-      <div class="actions">
-        <button id="resetStatsBtn" class="btn btn-secondary btn-full">Reset Stats</button>
+    <div class="settings-group">
+      <div class="sg-label">Feedback &amp; Privacy</div>
+      <label class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-name">Feedback buttons</span>
+          <span class="toggle-desc">Show 👍/👎 on highlighted elements</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="feedbackToggle" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </label>
+      <label class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-name">Offline mode</span>
+          <span class="toggle-desc">Use cached rules only, no API calls</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="offlineToggle">
+          <span class="toggle-track"></span>
+        </label>
+      </label>
+    </div>
+
+    <div class="settings-group">
+      <div class="sg-label">API Connection</div>
+      <div class="input-row">
+        <input type="text" id="apiUrlInput" class="text-input" placeholder="http://localhost:5000">
+        <button id="saveUrlBtn" class="btn-save">Save</button>
       </div>
     </div>
+
+    <div class="settings-group">
+      <div class="sg-label">Active Pattern Categories</div>
+      <div id="patternToggles" class="pattern-toggles-list"></div>
+    </div>
+
+    <div class="settings-group">
+      <div class="sg-label">Domain Whitelist</div>
+      <button id="whitelistBtn" class="btn-outline btn-full">
+        Add current site to whitelist
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       ANALYTICS TAB
+  ═══════════════════════════════════════════════════ -->
+  <div id="tab-stats" class="tab-pane">
+
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-value" id="totalScans">0</div>
+        <div class="kpi-label">Total Scans</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value accent" id="totalDetections">0</div>
+        <div class="kpi-label">Detections</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value" id="uniqueSites">0</div>
+        <div class="kpi-label">Sites Scanned</div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="sg-label">By Pattern Type</div>
+      <div id="patternBreakdown" class="breakdown-list">
+        <div class="breakdown-empty">No data yet — scan a few pages</div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="sg-label">Most Flagged Sites</div>
+      <div id="topSites" class="top-sites-list">
+        <div class="breakdown-empty">No data yet</div>
+      </div>
+    </div>
+
+    <div class="settings-group" style="padding-bottom:4px">
+      <button id="resetStatsBtn" class="btn-outline btn-full btn-danger">Reset all statistics</button>
+    </div>
+
   </div>
 
   <script src="../utils/config.js"></script>

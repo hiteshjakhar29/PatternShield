@@ -1,9 +1,10 @@
 /**
- * PatternShield Content Script v2.1 (FIXED)
- * - Tests API connection on startup (logs result to console)
+ * PatternShield Content Script v2.1
+ * - Tests API connection on startup
  * - Client-side keyword pre-filter
- * - Direct text extraction
- * - All API calls via background.js proxy
+ * - Batch analysis via background proxy
+ * - Rich JS tooltips + floating panel integration
+ * - Dynamic content rescanning via MutationObserver
  */
 
 class PatternShieldScanner {
@@ -11,9 +12,10 @@ class PatternShieldScanner {
     this.scannedElements = new Set();
     this.detectedPatterns = [];
     this.isScanning = false;
-    this.settings = CONFIG.DEFAULT_SETTINGS;
+    this.settings = { ...CONFIG.DEFAULT_SETTINGS };
     this.observer = null;
     this.domain = window.location.hostname;
+    this.panel = null;
 
     // Fast client-side suspicious keyword regex (all 10 categories)
     this.suspiciousRegex = new RegExp([
@@ -58,19 +60,23 @@ class PatternShieldScanner {
       return;
     }
 
-    // Test API connection first
+    // Initialize floating panel if enabled
+    if (this.settings.showFloatingPanel !== false && window.PatternShieldPanel) {
+      this.panel = new window.PatternShieldPanel();
+    }
+
+    // Test API connection and cache offline rules
     if (window.PatternShieldAPI) {
       const connected = await window.PatternShieldAPI.testConnection();
       window.PatternShieldAPI.loadOfflineRules().catch(() => {});
-
       if (!connected) {
-        console.warn('[PatternShield] API not reachable. Will use offline detection if rules are cached.');
-        console.warn('[PatternShield] Start the backend: cd backend && python3 app.py');
+        console.warn('[PatternShield] API not reachable — using offline rules if cached.');
+        console.warn('[PatternShield] Start backend: cd backend && python3 app.py');
       }
     }
 
     if (this.settings.autoScan) {
-      // Delay to let dynamic pages (Amazon, etc.) load content
+      // Delay to let dynamic pages load content
       setTimeout(() => this.scanPage(), 2000);
     }
 
@@ -87,7 +93,7 @@ class PatternShieldScanner {
   async loadSettings() {
     try {
       const r = await chrome.storage.sync.get(CONFIG.STORAGE_KEYS.SETTINGS);
-      this.settings = r[CONFIG.STORAGE_KEYS.SETTINGS] || CONFIG.DEFAULT_SETTINGS;
+      this.settings = { ...CONFIG.DEFAULT_SETTINGS, ...(r[CONFIG.STORAGE_KEYS.SETTINGS] || {}) };
     } catch {}
   }
 
@@ -101,7 +107,9 @@ class PatternShieldScanner {
   setupObserver() {
     this.observer = new MutationObserver(
       this.debounce(() => {
-        if (this.settings.autoScan) this.scanPage();
+        if (this.settings.dynamicScan !== false && this.settings.autoScan) {
+          this.scanPage();
+        }
       }, 3000)
     );
     this.observer.observe(document.body, { childList: true, subtree: true });
@@ -118,47 +126,55 @@ class PatternShieldScanner {
     if (this.isScanning) return;
     this.isScanning = true;
 
+    if (this.panel) this.panel.setScanning();
+
     try {
       const elements = this.collectSuspiciousElements();
       console.log(`[PatternShield] Found ${elements.length} suspicious elements`);
 
       if (elements.length === 0) {
-        this.sendUpdateToPopup();
-        await this.updateStats();
+        this.finalizeScan();
         return;
       }
 
       // Process in batches of 20
       for (let i = 0; i < elements.length; i += 20) {
-        const batch = elements.slice(i, i + 20);
-        await this.analyzeBatch(batch);
+        await this.analyzeBatch(elements.slice(i, i + 20));
       }
 
-      this.sendUpdateToPopup();
-      await this.updateStats();
-
-      if (this.settings.enableTemporal && this.detectedPatterns.length > 0) {
-        this.recordTemporalData();
-      }
-
-      console.log(`[PatternShield] ✅ Detected ${this.detectedPatterns.length} dark patterns`);
-      if (this.detectedPatterns.length > 0) {
-        const summary = {};
-        this.detectedPatterns.forEach(d => {
-          summary[d.pattern] = (summary[d.pattern] || 0) + 1;
-        });
-        console.log('[PatternShield] Breakdown:', summary);
-      }
+      this.finalizeScan();
     } catch (e) {
       console.error('[PatternShield] Scan error:', e);
+      if (this.panel) this.panel.update(this.detectedPatterns, this.domain);
     } finally {
       this.isScanning = false;
     }
   }
 
+  finalizeScan() {
+    this.sendUpdateToPopup();
+    this.updateStats();
+
+    if (this.panel) this.panel.update(this.detectedPatterns, this.domain);
+
+    if (this.settings.enableTemporal && this.detectedPatterns.length > 0) {
+      this.recordTemporalData();
+    }
+
+    if (this.settings.showNotifications !== false && this.detectedPatterns.length > 0) {
+      this._sendNotification(this.detectedPatterns.length);
+    }
+
+    console.log(`[PatternShield] Detected ${this.detectedPatterns.length} dark patterns`);
+    if (this.detectedPatterns.length > 0) {
+      const summary = {};
+      this.detectedPatterns.forEach(d => { summary[d.pattern] = (summary[d.pattern] || 0) + 1; });
+      console.log('[PatternShield] Breakdown:', summary);
+    }
+  }
+
   /**
-   * Collect elements that match suspicious keywords.
-   * Two-pass: walk DOM → pre-filter by keyword → send to API.
+   * Collect elements matching suspicious keywords (client-side pre-filter).
    */
   collectSuspiciousElements() {
     const suspicious = [];
@@ -175,15 +191,13 @@ class PatternShieldScanner {
     );
 
     for (const el of allElements) {
+      // Skip PatternShield's own UI elements
+      if (el.closest('#ps-panel') || el.closest('.ps-tooltip') || el.closest('.ps-feedback')) continue;
       if (this.scannedElements.has(el) || seen.has(el)) continue;
 
       const text = this.getDirectText(el);
       if (!text || text.length < 4 || text.length > 300) continue;
-
-      // Pre-filter: only keep elements with suspicious keywords
       if (!this.suspiciousRegex.test(text)) continue;
-
-      // Skip invisible elements
       if (el.offsetWidth === 0 && el.offsetHeight === 0) continue;
 
       seen.add(el);
@@ -206,7 +220,7 @@ class PatternShieldScanner {
   }
 
   /**
-   * Get DIRECT text of an element, not inherited from deep children.
+   * Get direct text of an element without deep child inheritance.
    */
   getDirectText(el) {
     if (el.tagName === 'INPUT') {
@@ -221,13 +235,10 @@ class PatternShieldScanner {
     // Collect direct text nodes only
     let text = '';
     for (const node of el.childNodes) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        text += node.textContent;
-      }
+      if (node.nodeType === Node.TEXT_NODE) text += node.textContent;
     }
     text = text.trim();
 
-    // For small elements, use innerText
     if (!text && el.children.length <= 3) {
       const tag = el.tagName;
       if (['BUTTON', 'A', 'LABEL', 'SMALL', 'STRONG', 'EM', 'B', 'I', 'SPAN'].includes(tag)) {
@@ -236,7 +247,6 @@ class PatternShieldScanner {
       }
     }
 
-    // Last resort for very small elements
     if (!text && el.children.length <= 2) {
       const inner = (el.innerText || '').trim();
       if (inner.length <= 80) text = inner;
@@ -258,11 +268,7 @@ class PatternShieldScanner {
 
     try {
       const results = await window.PatternShieldAPI.batchAnalyze(payload);
-
-      if (!Array.isArray(results)) {
-        console.warn('[PatternShield] Batch returned non-array:', results);
-        return;
-      }
+      if (!Array.isArray(results)) return;
 
       results.forEach((result, idx) => {
         if (idx >= batch.length) return;
@@ -308,31 +314,67 @@ class PatternShieldScanner {
     el.setAttribute('data-patternshield-confidence', detection.confidence.toFixed(2));
     el.setAttribute('data-patternshield-severity', detection.severity);
     el.classList.add('patternshield-highlight');
-    el.style.setProperty('--patternshield-color', cfg.color || '#EF4444', 'important');
+    el.style.setProperty('--ps-color', cfg.color || '#EF4444', 'important');
 
-    const tooltipText = `${cfg.icon || '⚠️'} ${cfg.label || detection.pattern} (${(detection.confidence * 100).toFixed(0)}%) — ${detection.severity}`;
-    el.setAttribute('data-patternshield-tooltip', tooltipText);
+    if (this.settings.richTooltips !== false) {
+      this.injectTooltip(el, detection, cfg);
+    }
 
-    if (this.settings.enableFeedback) {
+    if (this.settings.enableFeedback !== false) {
       this.addFeedbackButtons(el, detection);
     }
+  }
+
+  /**
+   * Inject a rich JS tooltip div with mouseenter/mouseleave handling.
+   */
+  injectTooltip(el, detection, cfg) {
+    if (el.querySelector('.ps-tooltip')) return;
+
+    const explanation = detection.explanations[detection.pattern] || '';
+    const confPct = (detection.confidence * 100).toFixed(0);
+    const sevClass = `ps-tt-sev-${detection.severity}`;
+
+    const tip = document.createElement('div');
+    tip.className = 'ps-tooltip';
+    tip.style.setProperty('--ps-color', cfg.color || '#6366f1', 'important');
+    tip.innerHTML = `
+      <div class="ps-tt-header">
+        <span class="ps-tt-pattern">${cfg.icon || '⚠️'} ${cfg.label || detection.pattern}</span>
+        <div class="ps-tt-badges">
+          <span class="ps-tt-conf">${confPct}%</span>
+          <span class="ps-tt-sev ${sevClass}">${detection.severity}</span>
+        </div>
+      </div>
+      ${explanation ? `<div class="ps-tt-explanation">${explanation}</div>` : ''}
+    `;
+
+    el.style.position = el.style.position || 'relative';
+    el.appendChild(tip);
+
+    el.addEventListener('mouseenter', () => tip.classList.add('ps-tooltip-visible'));
+    el.addEventListener('mouseleave', () => tip.classList.remove('ps-tooltip-visible'));
   }
 
   addFeedbackButtons(el, detection) {
     if (el.querySelector('.ps-feedback')) return;
     const container = document.createElement('div');
     container.className = 'ps-feedback';
-    container.innerHTML = '<button class="ps-fb-btn ps-fb-correct" title="Correct">👍</button><button class="ps-fb-btn ps-fb-wrong" title="Wrong">👎</button>';
-    container.querySelector('.ps-fb-correct').addEventListener('click', (e) => {
+    container.innerHTML =
+      '<button class="ps-fb-btn ps-fb-correct" title="Correct detection">👍</button>' +
+      '<button class="ps-fb-btn ps-fb-wrong" title="Wrong detection">👎</button>';
+
+    container.querySelector('.ps-fb-correct').addEventListener('click', e => {
       e.stopPropagation(); e.preventDefault();
       window.PatternShieldAPI.submitFeedback(detection.text, detection.pattern, true, '', this.domain);
-      container.innerHTML = '<span class="ps-fb-thanks">✓</span>';
+      container.innerHTML = '<span class="ps-fb-thanks">✓ Thanks</span>';
     });
-    container.querySelector('.ps-fb-wrong').addEventListener('click', (e) => {
+    container.querySelector('.ps-fb-wrong').addEventListener('click', e => {
       e.stopPropagation(); e.preventDefault();
       window.PatternShieldAPI.submitFeedback(detection.text, detection.pattern, false, '', this.domain);
-      container.innerHTML = '<span class="ps-fb-thanks">✗</span>';
+      container.innerHTML = '<span class="ps-fb-thanks">✗ Noted</span>';
     });
+
     el.style.position = el.style.position || 'relative';
     el.appendChild(container);
   }
@@ -346,6 +388,16 @@ class PatternShieldScanner {
     }
   }
 
+  _sendNotification(count) {
+    try {
+      chrome.runtime.sendMessage({
+        action: 'showNotification',
+        count,
+        domain: this.domain,
+      });
+    } catch {}
+  }
+
   // ── Clear ─────────────────────────────────────────────────────────
 
   removeAllHighlights() {
@@ -354,10 +406,9 @@ class PatternShieldScanner {
       el.removeAttribute('data-patternshield');
       el.removeAttribute('data-patternshield-confidence');
       el.removeAttribute('data-patternshield-severity');
-      el.removeAttribute('data-patternshield-tooltip');
-      el.style.removeProperty('--patternshield-color');
-      const fb = el.querySelector('.ps-feedback');
-      if (fb) fb.remove();
+      el.style.removeProperty('--ps-color');
+      el.querySelector('.ps-tooltip')?.remove();
+      el.querySelector('.ps-feedback')?.remove();
     });
     this.detectedPatterns = [];
     this.scannedElements.clear();
@@ -366,29 +417,20 @@ class PatternShieldScanner {
   // ── Popup Communication ───────────────────────────────────────────
 
   sendUpdateToPopup() {
-    try {
-      chrome.runtime.sendMessage({
-        action: 'updateDetections',
-        data: {
-          count: this.detectedPatterns.length,
-          domain: this.domain,
-          patterns: this.detectedPatterns.map(p => ({
-            text: p.text.substring(0, 150),
-            pattern: p.pattern,
-            confidence: p.confidence,
-            severity: p.severity,
-            isCookieConsent: p.isCookieConsent,
-            explanations: p.explanations,
-          })),
-        },
-      });
-    } catch {}
-    try {
-      chrome.runtime.sendMessage({
-        action: 'updateBadge',
-        count: this.detectedPatterns.length,
-      });
-    } catch {}
+    const payload = {
+      count: this.detectedPatterns.length,
+      domain: this.domain,
+      patterns: this.detectedPatterns.map(p => ({
+        text: p.text.substring(0, 150),
+        pattern: p.pattern,
+        confidence: p.confidence,
+        severity: p.severity,
+        isCookieConsent: p.isCookieConsent,
+        explanations: p.explanations,
+      })),
+    };
+    try { chrome.runtime.sendMessage({ action: 'updateDetections', data: payload }); } catch {}
+    try { chrome.runtime.sendMessage({ action: 'updateBadge', count: this.detectedPatterns.length }); } catch {}
   }
 
   async updateStats() {
@@ -434,12 +476,22 @@ class PatternShieldScanner {
         break;
       case 'clearHighlights':
         this.removeAllHighlights();
+        if (this.panel) this.panel.update([], this.domain);
         sendResponse({ success: true });
         break;
-      case 'updateSettings':
-        this.settings = req.settings || this.settings;
+      case 'updateSettings': {
+        this.settings = { ...this.settings, ...(req.settings || {}) };
+        // Show/hide floating panel based on new settings
+        if (this.panel) {
+          if (this.settings.showFloatingPanel !== false) this.panel.show();
+          else this.panel.hide();
+        } else if (this.settings.showFloatingPanel !== false && window.PatternShieldPanel) {
+          this.panel = new window.PatternShieldPanel();
+          this.panel.update(this.detectedPatterns, this.domain);
+        }
         sendResponse({ success: true });
         break;
+      }
       default:
         sendResponse({ error: 'Unknown action' });
     }
