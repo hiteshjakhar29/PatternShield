@@ -22,6 +22,7 @@ const CONFIG = {
     DEBOUNCE_DELAY: 3000,
     MAX_ELEMENTS_PER_SCAN: 200,
     BATCH_SIZE: 20,
+    API_RETRY_COOLDOWN_MS: 3 * 60 * 1000, // 3 minutes between backend retries when unavailable
   },
 
   PATTERNS: {
@@ -86,11 +87,12 @@ const CONFIG = {
   },
 
   STORAGE_KEYS: {
-    SETTINGS:         'patternshield_settings',
-    WHITELIST:        'patternshield_whitelist',
-    STATS:            'patternshield_stats',
-    OFFLINE_RULES:    'patternshield_offline_rules',
-    TEMPORAL_HISTORY: 'patternshield_temporal',
+    SETTINGS:          'patternshield_settings',
+    WHITELIST:         'patternshield_whitelist',
+    STATS:             'patternshield_stats',
+    OFFLINE_RULES:     'patternshield_offline_rules',
+    TEMPORAL_HISTORY:  'patternshield_temporal',
+    DISMISSED_PANELS:  'patternshield_dismissed_panels',
   },
 
   DEFAULT_SETTINGS: {

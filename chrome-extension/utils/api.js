@@ -9,7 +9,30 @@ class PatternShieldAPI {
     this.requestCache = new Map();
     this.cacheTimeout = 5 * 60 * 1000;
     this.offlineRules = null;
-    this.apiAvailable = null; // null = unknown, true/false = tested
+    // Connection state: 'unknown' | 'online' | 'offline_fallback' | 'unreachable'
+    this.connectionState = 'unknown';
+    this._cooldownUntil = 0;
+    this._cooldownMs = (CONFIG.DETECTION && CONFIG.DETECTION.API_RETRY_COOLDOWN_MS) || 3 * 60 * 1000;
+  }
+
+  // ── Connection state helpers ──────────────────────────────────────
+
+  _isKnownUnavailable() {
+    return this.connectionState === 'unreachable' && Date.now() < this._cooldownUntil;
+  }
+
+  _markUnavailable() {
+    if (this.connectionState !== 'unreachable') {
+      // Log once when first transitioning to unavailable
+      console.warn('[PatternShield] Backend unavailable — offline fallback active. Start backend: cd backend && python3 app.py');
+    }
+    this.connectionState = 'unreachable';
+    this._cooldownUntil = Date.now() + this._cooldownMs;
+  }
+
+  _markOnline() {
+    this.connectionState = 'online';
+    this._cooldownUntil = 0;
   }
 
   // ── Core: Send request via background service worker ──────────────
@@ -38,13 +61,13 @@ class PatternShieldAPI {
   // ── Connection Test ───────────────────────────────────────────────
 
   async testConnection() {
+    if (this._isKnownUnavailable()) return false;
     const res = await this._proxy('/health');
-    this.apiAvailable = res.success;
     if (res.success) {
-      console.log('PatternShield: ✅ API connected -', JSON.stringify(res.data));
+      this._markOnline();
+      console.log('[PatternShield] Backend connected —', res.data?.version || 'v2.1');
     } else {
-      console.warn('PatternShield: ❌ API unreachable -', res.error);
-      console.warn('PatternShield: Make sure backend is running: python3 app.py');
+      this._markUnavailable();
     }
     return res.success;
   }
@@ -68,7 +91,7 @@ class PatternShieldAPI {
 
   async analyzeText(text, elementType = 'div', color = '#000000', extras = {}) {
     const settings = await this.getSettings();
-    if (settings.offlineMode) {
+    if (settings.offlineMode || this._isKnownUnavailable()) {
       return this.analyzeOfflineSync(text, elementType, color);
     }
 
@@ -86,11 +109,12 @@ class PatternShieldAPI {
     });
 
     if (res.success) {
+      this._markOnline();
       this.requestCache.set(cacheKey, { result: res.data, ts: Date.now() });
       return res.data;
     }
 
-    console.warn('PatternShield: API failed, offline fallback:', res.error);
+    this._markUnavailable();
     return this.analyzeOfflineSync(text, elementType, color);
   }
 
@@ -98,7 +122,7 @@ class PatternShieldAPI {
 
   async batchAnalyze(elements) {
     const settings = await this.getSettings();
-    if (settings.offlineMode) {
+    if (settings.offlineMode || this._isKnownUnavailable()) {
       return elements.map(el => this.analyzeOfflineSync(
         el.text || el, el.element_type || 'div', el.color || '#000000'
       ));
@@ -118,11 +142,12 @@ class PatternShieldAPI {
     const res = await this._proxy('/batch/analyze', 'POST', { elements: payload });
 
     if (res.success && res.data && Array.isArray(res.data.results)) {
+      this._markOnline();
       return res.data.results;
     }
 
-    // Fallback to offline
-    console.warn('PatternShield: Batch failed, offline fallback:', res.error || 'no results');
+    // Backend unreachable — enter cooldown, use offline fallback silently
+    this._markUnavailable();
     return elements.map(el => this.analyzeOfflineSync(
       el.text || el, el.element_type || el.type || 'div', el.color || '#000000'
     ));
@@ -160,25 +185,22 @@ class PatternShieldAPI {
 
   async loadOfflineRules() {
     try {
-      // Try loading from local storage first
+      // Try local storage cache first (no network needed)
       const stored = await chrome.storage.local.get(CONFIG.STORAGE_KEYS.OFFLINE_RULES);
       if (stored[CONFIG.STORAGE_KEYS.OFFLINE_RULES]) {
         this.offlineRules = stored[CONFIG.STORAGE_KEYS.OFFLINE_RULES];
-        console.log('PatternShield: Offline rules loaded from cache');
         return;
       }
-      // Fetch from API via proxy
+      // Only fetch from API if backend is reachable
+      if (this._isKnownUnavailable()) return;
       const res = await this._proxy('/offline-rules');
       if (res.success && res.data && res.data.rules) {
         this.offlineRules = res.data.rules;
         await chrome.storage.local.set({
-          [CONFIG.STORAGE_KEYS.OFFLINE_RULES]: res.data.rules
+          [CONFIG.STORAGE_KEYS.OFFLINE_RULES]: res.data.rules,
         });
-        console.log('PatternShield: Offline rules fetched from API');
       }
-    } catch (e) {
-      console.warn('PatternShield: Could not load offline rules:', e.message);
-    }
+    } catch {}
   }
 
   // ── Offline Detection Engine ──────────────────────────────────────

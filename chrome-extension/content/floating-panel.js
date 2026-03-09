@@ -5,13 +5,14 @@
  */
 
 class PatternShieldPanel {
-  constructor() {
+  constructor(onClose) {
     this.el       = null;
     this.isDragging = false;
     this.dragOffset = { x: 0, y: 0 };
     this.collapsed  = false;
     this.detections = [];
     this.trustScore = null;
+    this._onClose   = onClose || null;
     this._build();
   }
 
@@ -216,7 +217,8 @@ class PatternShieldPanel {
     });
 
     document.getElementById('ps-close-btn').addEventListener('click', () => {
-      this.hide();
+      if (this._onClose) this._onClose();
+      else this.destroy();
     });
   }
 }

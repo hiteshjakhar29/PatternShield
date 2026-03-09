@@ -118,8 +118,7 @@ test: ## Run all tests with pytest
 test-cov: ## Run tests with HTML coverage report
 	cd $(shell pwd) && RATE_LIMIT_ENABLED=false API_KEY_REQUIRED=false \
 		FEEDBACK_FILE=/tmp/test_feedback.jsonl TEMPORAL_FILE=/tmp/test_temporal.json \
-		pytest tests/ --cov=. --cov-report=html --cov-report=term-missing \
-		--cov-omit="tests/*,venv/*,.venv/*" -v --tb=short
+		pytest tests/ --cov=. --cov-report=html --cov-report=term-missing -v --tb=short
 	@echo "✅ Coverage report: htmlcov/index.html"
 
 test-fast: ## Run tests, stop on first failure

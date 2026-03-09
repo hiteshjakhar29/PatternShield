@@ -214,6 +214,12 @@ function setupListeners() {
     showToast('Offline cache cleared', 'success');
   });
 
+  // Clear dismissed panel domains
+  document.getElementById('clearDismissedBtn').addEventListener('click', async () => {
+    await chrome.storage.local.remove(CONFIG.STORAGE_KEYS.DISMISSED_PANELS);
+    showToast('Dismissed panel sites cleared — panels will show again', 'success');
+  });
+
   // Reset all data
   document.getElementById('clearAllBtn').addEventListener('click', async () => {
     if (!confirm('This will clear ALL PatternShield data including stats and settings. Continue?')) return;

@@ -16,6 +16,7 @@ class PatternShieldScanner {
     this.observer = null;
     this.domain = window.location.hostname;
     this.panel = null;
+    this._panelDismissed = false;
 
     // Fast client-side suspicious keyword regex (all 10 categories)
     this.suspiciousRegex = new RegExp([
@@ -60,19 +61,16 @@ class PatternShieldScanner {
       return;
     }
 
-    // Initialize floating panel if enabled
-    if (this.settings.showFloatingPanel !== false && window.PatternShieldPanel) {
-      this.panel = new window.PatternShieldPanel();
+    // Initialize floating panel if enabled and not dismissed for this domain
+    this._panelDismissed = await this._isPanelDismissed();
+    if (this.settings.showFloatingPanel !== false && !this._panelDismissed && window.PatternShieldPanel) {
+      this.panel = new window.PatternShieldPanel(() => this._dismissPanel());
     }
 
-    // Test API connection and cache offline rules
+    // Test API connection and cache offline rules (api.js handles logging + cooldown)
     if (window.PatternShieldAPI) {
-      const connected = await window.PatternShieldAPI.testConnection();
+      await window.PatternShieldAPI.testConnection();
       window.PatternShieldAPI.loadOfflineRules().catch(() => {});
-      if (!connected) {
-        console.warn('[PatternShield] API not reachable — using offline rules if cached.');
-        console.warn('[PatternShield] Start backend: cd backend && python3 app.py');
-      }
     }
 
     if (this.settings.autoScan) {
@@ -126,7 +124,7 @@ class PatternShieldScanner {
     if (this.isScanning) return;
     this.isScanning = true;
 
-    if (this.panel) this.panel.setScanning();
+    if (this.panel && !this._panelDismissed) this.panel.setScanning();
 
     try {
       const elements = this.collectSuspiciousElements();
@@ -145,7 +143,7 @@ class PatternShieldScanner {
       this.finalizeScan();
     } catch (e) {
       console.error('[PatternShield] Scan error:', e);
-      if (this.panel) this.panel.update(this.detectedPatterns, this.domain);
+      if (this.panel && !this._panelDismissed) this.panel.update(this.detectedPatterns, this.domain);
     } finally {
       this.isScanning = false;
     }
@@ -155,7 +153,7 @@ class PatternShieldScanner {
     this.sendUpdateToPopup();
     this.updateStats();
 
-    if (this.panel) this.panel.update(this.detectedPatterns, this.domain);
+    if (this.panel && !this._panelDismissed) this.panel.update(this.detectedPatterns, this.domain);
 
     if (this.settings.enableTemporal && this.detectedPatterns.length > 0) {
       this.recordTemporalData();
@@ -388,13 +386,32 @@ class PatternShieldScanner {
     }
   }
 
+  async _isPanelDismissed() {
+    try {
+      const key = CONFIG.STORAGE_KEYS.DISMISSED_PANELS;
+      const r = await chrome.storage.local.get(key);
+      return !!((r[key] || {})[this.domain]);
+    } catch { return false; }
+  }
+
+  async _dismissPanel() {
+    this._panelDismissed = true;
+    if (this.panel) { this.panel.destroy(); this.panel = null; }
+    try {
+      const key = CONFIG.STORAGE_KEYS.DISMISSED_PANELS;
+      const r = await chrome.storage.local.get(key);
+      const map = r[key] || {};
+      map[this.domain] = true;
+      await chrome.storage.local.set({ [key]: map });
+    } catch {}
+  }
+
   _sendNotification(count) {
     try {
-      chrome.runtime.sendMessage({
-        action: 'showNotification',
-        count,
-        domain: this.domain,
-      });
+      chrome.runtime.sendMessage(
+        { action: 'showNotification', count, domain: this.domain },
+        () => void chrome.runtime.lastError
+      );
     } catch {}
   }
 
@@ -429,8 +446,10 @@ class PatternShieldScanner {
         explanations: p.explanations,
       })),
     };
-    try { chrome.runtime.sendMessage({ action: 'updateDetections', data: payload }); } catch {}
-    try { chrome.runtime.sendMessage({ action: 'updateBadge', count: this.detectedPatterns.length }); } catch {}
+    // Callbacks are required to consume chrome.runtime.lastError and prevent the
+    // extension error badge when the popup is closed or background is restarting.
+    try { chrome.runtime.sendMessage({ action: 'updateDetections', data: payload }, () => void chrome.runtime.lastError); } catch {}
+    try { chrome.runtime.sendMessage({ action: 'updateBadge', count: this.detectedPatterns.length }, () => void chrome.runtime.lastError); } catch {}
   }
 
   async updateStats() {
@@ -476,17 +495,17 @@ class PatternShieldScanner {
         break;
       case 'clearHighlights':
         this.removeAllHighlights();
-        if (this.panel) this.panel.update([], this.domain);
+        if (this.panel && !this._panelDismissed) this.panel.update([], this.domain);
         sendResponse({ success: true });
         break;
       case 'updateSettings': {
         this.settings = { ...this.settings, ...(req.settings || {}) };
-        // Show/hide floating panel based on new settings
+        // Show/hide floating panel based on new settings (never recreate if dismissed)
         if (this.panel) {
           if (this.settings.showFloatingPanel !== false) this.panel.show();
           else this.panel.hide();
-        } else if (this.settings.showFloatingPanel !== false && window.PatternShieldPanel) {
-          this.panel = new window.PatternShieldPanel();
+        } else if (this.settings.showFloatingPanel !== false && !this._panelDismissed && window.PatternShieldPanel) {
+          this.panel = new window.PatternShieldPanel(() => this._dismissPanel());
           this.panel.update(this.detectedPatterns, this.domain);
         }
         sendResponse({ success: true });

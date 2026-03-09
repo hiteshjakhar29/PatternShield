@@ -48,22 +48,24 @@ class PopupController {
     const dot  = document.getElementById('statusDot');
     const text = document.getElementById('statusText');
 
+    if (this.settings.offlineMode) {
+      dot.className = 'status-dot offline';
+      text.textContent = 'Offline Mode';
+      return;
+    }
+
     dot.className = 'status-dot pending';
     text.textContent = 'Checking…';
 
-    try {
-      const result = await this._bgProxy('/health', 'GET');
-      if (result.success && result.data) {
-        dot.className = 'status-dot';
-        text.textContent = this.settings.offlineMode
-          ? 'Offline Mode'
-          : `v${result.data.version || '2.1'}`;
-      } else {
-        throw new Error('unreachable');
-      }
-    } catch {
+    const result = await this._bgProxy('/health', 'GET');
+    if (result.success && result.data) {
+      dot.className = 'status-dot';
+      text.textContent = `Connected — v${result.data.version || '2.1'}`;
+    } else {
       dot.className = 'status-dot offline';
-      text.textContent = this.settings.offlineMode ? 'Offline Mode' : 'API Offline';
+      text.textContent = 'Backend offline';
+      // Append hint as tooltip-style title on the status element rather than a console.warn
+      document.getElementById('statusText').title = 'Start backend: cd backend && python3 app.py';
     }
   }
 
