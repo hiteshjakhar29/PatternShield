@@ -28,8 +28,12 @@ ENV PATH=/root/.local/bin:$PATH
 ENV NLTK_DATA=/usr/local/share/nltk_data
 
 COPY app.py .
+COPY config.py .
 COPY ml_detector.py .
 COPY gunicorn_config.py .
+COPY api/ api/
+COPY services/ services/
+COPY storage/ storage/
 COPY data/ data/
 
 RUN mkdir -p logs
