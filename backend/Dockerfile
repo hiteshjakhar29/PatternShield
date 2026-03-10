@@ -1,4 +1,4 @@
-# PatternShield v2.0 — Production Dockerfile
+# PatternShield — Production Dockerfile
 FROM python:3.12-slim AS builder
 
 WORKDIR /app
@@ -7,12 +7,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Install into a venv so any user can import the packages
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 COPY requirements-prod.txt requirements.txt
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN python -c "import nltk; nltk.download('vader_lexicon', download_dir='/usr/local/share/nltk_data'); nltk.download('punkt', download_dir='/usr/local/share/nltk_data'); nltk.download('punkt_tab', download_dir='/usr/local/share/nltk_data')"
+RUN python -c "\
+import nltk; \
+nltk.download('vader_lexicon', download_dir='/usr/local/share/nltk_data'); \
+nltk.download('punkt',         download_dir='/usr/local/share/nltk_data'); \
+nltk.download('punkt_tab',     download_dir='/usr/local/share/nltk_data')"
 
-# Runtime stage
+# ── Runtime stage ─────────────────────────────────────────────────────────────
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -21,10 +29,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /usr/local/share/nltk_data /usr/local/share/nltk_data
 
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH="/opt/venv/bin:$PATH"
 ENV NLTK_DATA=/usr/local/share/nltk_data
 
 COPY app.py .

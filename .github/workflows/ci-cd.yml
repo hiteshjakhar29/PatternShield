@@ -138,11 +138,10 @@ jobs:
 
     - name: Smoke test container
       run: |
-        docker run --rm -d -p 5000:5000 \
+        docker run -d -p 5000:5000 \
           -e RATE_LIMIT_ENABLED=false \
           -e API_KEY_REQUIRED=false \
-          --name ps-test ${{ env.DOCKER_IMAGE_NAME }}:test \
-          gunicorn --bind 0.0.0.0:5000 --workers 1 --timeout 60 app:app
+          --name ps-test ${{ env.DOCKER_IMAGE_NAME }}:test
 
         echo "=== Waiting for container to be ready (up to 60s) ==="
         HEALTHY=false
@@ -161,7 +160,7 @@ jobs:
 
         if [ "$HEALTHY" != "true" ]; then
           echo "FATAL: container never became healthy"
-          docker stop ps-test || true
+          docker rm -f ps-test || true
           exit 1
         fi
 
@@ -175,7 +174,7 @@ jobs:
         print('PASS — status:', d['status'])
         "
 
-        docker stop ps-test
+        docker rm -f ps-test
 
   # ============================================================================
   # JOB 5: Deploy to Render (main branch only)
