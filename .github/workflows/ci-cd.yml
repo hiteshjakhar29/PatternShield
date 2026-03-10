@@ -141,23 +141,38 @@ jobs:
         docker run --rm -d -p 5000:5000 \
           -e RATE_LIMIT_ENABLED=false \
           -e API_KEY_REQUIRED=false \
-          --name ps-test ${{ env.DOCKER_IMAGE_NAME }}:test
+          --name ps-test ${{ env.DOCKER_IMAGE_NAME }}:test \
+          gunicorn --bind 0.0.0.0:5000 --workers 1 --timeout 60 app:app
 
-        echo "Waiting for container to be ready..."
+        echo "=== Waiting for container to be ready (up to 60s) ==="
+        HEALTHY=false
         for i in $(seq 1 20); do
           if curl -sf http://localhost:5000/health > /dev/null 2>&1; then
-            echo "Container ready after ${i} attempts"
+            HEALTHY=true
+            echo "Container healthy after $((i * 3))s"
             break
           fi
-          echo "  attempt $i/20 — sleeping 3s"
+          echo "  attempt $i/20 — not ready yet, sleeping 3s"
           sleep 3
         done
 
-        curl -sf http://localhost:5000/health | python3 -c "
+        echo "=== Container logs ==="
+        docker logs ps-test
+
+        if [ "$HEALTHY" != "true" ]; then
+          echo "FATAL: container never became healthy"
+          docker stop ps-test || true
+          exit 1
+        fi
+
+        echo "=== Health check response ==="
+        RESPONSE=$(curl -sf http://localhost:5000/health)
+        echo "$RESPONSE"
+        echo "$RESPONSE" | python3 -c "
         import sys, json
         d = json.load(sys.stdin)
         assert d['status'] == 'healthy', f'Expected healthy, got: {d}'
-        print('Health check passed:', d['status'])
+        print('PASS — status:', d['status'])
         "
 
         docker stop ps-test
