@@ -143,6 +143,7 @@ jobs:
         context: ./backend
         file: ./backend/Dockerfile
         push: false
+        load: true
         tags: ${{ env.DOCKER_IMAGE_NAME }}:test
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
@@ -153,7 +154,7 @@ jobs:
           -e RATE_LIMIT_ENABLED=false \
           -e API_KEY_REQUIRED=false \
           --name ps-test ${{ env.DOCKER_IMAGE_NAME }}:test
-        sleep 8
+        sleep 15
         curl -sf http://localhost:5000/health | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['status']=='healthy', d"
         docker stop ps-test
 
