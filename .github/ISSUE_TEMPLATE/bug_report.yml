@@ -1,0 +1,91 @@
+name: Bug Report
+description: Something isn't working correctly
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill in as much detail as possible.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of PatternShield is affected?
+      options:
+        - Chrome Extension
+        - Flask Backend API
+        - Detection Engine (rule-based)
+        - LLM Hybrid Pipeline
+        - Database / Persistence
+        - Temporal Analysis
+        - CI/CD
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear description of what went wrong.
+      placeholder: "When I visit example.com and click Scan, the extension shows..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Exact steps to reproduce the bug.
+      placeholder: |
+        1. Open the extension on...
+        2. Click...
+        3. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behaviour
+      description: What actually happened? Include any error messages.
+    validations:
+      required: true
+
+  - type: textarea
+    id: api_response
+    attributes:
+      label: API Response (if applicable)
+      description: Paste the relevant API response or error output.
+      render: json
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: PatternShield version (check /health endpoint or manifest.json)
+      placeholder: "3.0.0"
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser (if extension issue)
+      placeholder: "Chrome 122"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste relevant backend logs from logs/app.log or browser console.
+      render: shell

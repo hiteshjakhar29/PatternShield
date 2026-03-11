@@ -1,0 +1,79 @@
+name: False Positive / False Negative Report
+description: PatternShield incorrectly flagged (or missed) a dark pattern
+labels: ["detection-accuracy", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help improve detection accuracy by reporting misclassifications.
+        These reports directly feed into model improvement.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Issue Type
+      options:
+        - "False Positive — flagged something that is NOT a dark pattern"
+        - "False Negative — missed a real dark pattern"
+        - "Wrong Category — detected pattern but classified incorrectly"
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: Website URL
+      placeholder: "https://example.com/product/123"
+
+  - type: textarea
+    id: element_text
+    attributes:
+      label: Element Text
+      description: Paste the exact text of the flagged/missed element.
+      placeholder: '"Only 3 left in stock — order soon"'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: detected_as
+    attributes:
+      label: PatternShield Detected As
+      options:
+        - Urgency/Scarcity
+        - Confirmshaming
+        - Obstruction
+        - Visual Interference
+        - Hidden Costs
+        - Forced Continuity
+        - Sneaking
+        - Social Proof Manipulation
+        - Misdirection
+        - Price Comparison Prevention
+        - No Pattern (missed detection)
+
+  - type: dropdown
+    id: should_be
+    attributes:
+      label: Correct Classification Should Be
+      options:
+        - Urgency/Scarcity
+        - Confirmshaming
+        - Obstruction
+        - Visual Interference
+        - Hidden Costs
+        - Forced Continuity
+        - Sneaking
+        - Social Proof Manipulation
+        - Misdirection
+        - Price Comparison Prevention
+        - No Pattern (legitimate UI)
+
+  - type: textarea
+    id: explanation
+    attributes:
+      label: Why is this a misclassification?
+      description: Explain why the current detection is wrong.
+    validations:
+      required: true

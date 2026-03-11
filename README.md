@@ -1,5 +1,12 @@
 # PatternShield
 
+[![CI/CD](https://github.com/hiteshjakhar29/PatternShield/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/hiteshjakhar29/PatternShield/actions/workflows/ci-cd.yml)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![Flask](https://img.shields.io/badge/Flask-3.0-green.svg)](https://flask.palletsprojects.com/)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-orange.svg)](https://www.sqlalchemy.org/)
+[![Claude AI](https://img.shields.io/badge/Anthropic-Claude-blueviolet.svg)](https://www.anthropic.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **LLM-hybrid Chrome Extension and Flask backend for real-time dark pattern detection.**
 
 PatternShield combines rule-based heuristics, an optional fine-tuned DistilBERT model, and Anthropic Claude to identify manipulative UI patterns across 10 categories. Every scan result is persisted to a SQLAlchemy database, enabling historical trust scoring and temporal fraud analysis across site visits.
