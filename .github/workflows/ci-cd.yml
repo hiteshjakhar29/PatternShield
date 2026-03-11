@@ -111,6 +111,10 @@ jobs:
         API_KEY_REQUIRED: "false"
         FEEDBACK_FILE: "/tmp/ci_feedback.jsonl"
         TEMPORAL_FILE: "/tmp/ci_temporal.json"
+        DATABASE_URL: "sqlite:////tmp/ci_patternshield.db"
+        # ANTHROPIC_API_KEY intentionally absent — LLM disabled in CI (rule-based only)
+        LLM_ENABLED: "false"
+        TESTING: "true"
 
     - uses: actions/upload-artifact@v4
       if: always()

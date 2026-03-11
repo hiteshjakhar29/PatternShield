@@ -1,5 +1,6 @@
 """
 Health, metrics, and pattern catalog endpoints.
+v3.0: health check now reports LLM status and DB connectivity.
 """
 import logging
 import time
@@ -22,31 +23,35 @@ def index():
         "name": "PatternShield API",
         "version": Config.API_VERSION,
         "status": "running",
+        "detection_pipeline": "rule_based + llm_hybrid",
         "endpoints": {
-            "GET  /":                    "API overview (this response)",
-            "GET  /health":              "Health check + service status",
-            "GET  /metrics":             "Runtime metrics",
-            "GET  /pattern-types":       "All 10 pattern categories",
-            "GET  /offline-rules":       "Export rules for offline mode",
-            "POST /analyze":             "Analyze single element",
-            "POST /analyze/transformer": "Transformer-based analysis (if loaded)",
-            "POST /batch/analyze":       "Batch analyze up to 100 elements",
-            "POST /site-score":          "Site-level trust score (A-F)",
-            "POST /feedback":            "Submit accuracy feedback",
-            "GET  /report/feedback":     "Aggregated feedback accuracy report",
-            "POST /temporal/record":     "Record elements for temporal tracking",
-            "POST /temporal/check":      "Check for fake timers / persistent urgency",
+            "GET  /":                      "API overview (this response)",
+            "GET  /health":                "Health check + service status",
+            "GET  /metrics":               "Runtime metrics",
+            "GET  /pattern-types":         "All 10 pattern categories",
+            "GET  /offline-rules":         "Export rules for offline mode",
+            "POST /analyze":               "Analyze single element (rule + LLM)",
+            "POST /analyze/transformer":   "Transformer-based analysis (if loaded)",
+            "POST /batch/analyze":         "Batch analyze up to 100 elements",
+            "POST /site-score":            "Site-level trust score (A-F) + persist",
+            "GET  /site-score/history":    "Historical trust score trend for domain",
+            "POST /feedback":              "Submit accuracy feedback",
+            "GET  /report/feedback":       "Aggregated feedback accuracy report",
+            "POST /temporal/record":       "Record elements for temporal tracking",
+            "POST /temporal/check":        "Check for fake timers / persistent urgency",
         },
     })
 
 
 @bp.route("/health", methods=["GET"])
 def health():
-    """Service health check."""
+    """Service health check including LLM and DB status."""
     from config import Config
     detectors = current_app.config.get("DETECTORS", {})
     feedback_svc = current_app.config.get("FEEDBACK_SERVICE")
     temporal_svc = current_app.config.get("TEMPORAL_SERVICE")
+    llm = current_app.config.get("LLM_ANALYZER")
+    pipeline = current_app.config.get("PIPELINE")
 
     uptime_s = round(time.time() - _START_TIME, 1)
 
@@ -55,20 +60,26 @@ def health():
         "version": Config.API_VERSION,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "uptime_seconds": uptime_s,
-        "models": {
-            "rule_based":  detectors.get("rule") is not None,
-            "transformer": detectors.get("transformer") is not None,
-            "ensemble":    detectors.get("ensemble") is not None,
+        "detection": {
+            "rule_based":    detectors.get("rule") is not None,
+            "transformer":   detectors.get("transformer") is not None,
+            "ensemble":      detectors.get("ensemble") is not None,
+            "llm":           getattr(llm, "is_enabled", False),
+            "llm_model":     Config.LLM_MODEL if getattr(llm, "is_enabled", False) else None,
+            "pipeline":      pipeline is not None,
         },
-        "services": {
-            "feedback": feedback_svc is not None,
-            "temporal": temporal_svc is not None,
+        "persistence": {
+            "database":  current_app.config.get("DB_ENABLED", False),
+            "db_engine": Config.DATABASE_URL.split("://")[0] if Config.DATABASE_URL else None,
+            "feedback":  feedback_svc is not None,
+            "temporal":  temporal_svc is not None,
         },
         "config": {
-            "environment":   Config.FLASK_ENV,
-            "rate_limiting": Config.RATE_LIMIT_ENABLED,
-            "authentication": Config.API_KEY_REQUIRED,
+            "environment":          Config.FLASK_ENV,
+            "rate_limiting":        Config.RATE_LIMIT_ENABLED,
+            "authentication":       Config.API_KEY_REQUIRED,
             "confidence_threshold": Config.CONFIDENCE_THRESHOLD,
+            "llm_trigger_threshold": Config.LLM_TRIGGER_THRESHOLD,
         },
         "pattern_categories": 10,
     })

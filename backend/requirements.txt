@@ -1,4 +1,4 @@
-# PatternShield v2.0 — Production Dependencies
+# PatternShield v3.0 — Production Dependencies
 
 # Web Framework
 Flask==3.0.0
@@ -12,6 +12,13 @@ Flask-Talisman==1.1.0
 # NLP
 textblob==0.17.1
 nltk>=3.8.1
+
+# Database (SQLAlchemy ORM — SQLite default, PostgreSQL via DATABASE_URL)
+SQLAlchemy>=2.0.0
+
+# LLM integration (Anthropic Claude)
+# Optional: app works without this; LLM features disabled if not installed
+anthropic>=0.40.0
 
 # Utilities
 python-dotenv>=1.0.0

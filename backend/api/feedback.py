@@ -1,5 +1,7 @@
 """
 Feedback endpoints — collect and report user corrections on detections.
+v3.0: feedback is written to both the JSONL file (fast append) and the
+      SQL database (queryable history).
 """
 import logging
 from flask import Blueprint, jsonify, request, current_app
@@ -24,6 +26,7 @@ def submit_feedback():
     if missing:
         return jsonify({"error": f"Missing required fields: {missing}"}), 400
 
+    # Write to JSONL (primary, fast append)
     entry = svc.record(
         text=data["text"],
         detected_pattern=data["detected_pattern"],
@@ -31,6 +34,21 @@ def submit_feedback():
         user_label=data.get("user_label", ""),
         domain=data.get("domain", ""),
     )
+
+    # Also persist to SQL DB (best-effort)
+    if current_app.config.get("DB_ENABLED"):
+        try:
+            from database import record_feedback_db
+            record_feedback_db(
+                element_text=data["text"],
+                detected_pattern=data["detected_pattern"],
+                is_correct=bool(data["is_correct"]),
+                user_label=data.get("user_label", ""),
+                domain=data.get("domain", ""),
+            )
+        except Exception as db_err:
+            logger.warning(f"DB feedback write failed (non-fatal): {db_err}")
+
     return jsonify({
         "success": True,
         "entry": entry,

@@ -1,6 +1,13 @@
 """
-PatternShield API Server v2.1
+PatternShield API Server v3.0
 Modular Flask application — blueprints registered from api/ package.
+
+v3.0 additions:
+  - SQLAlchemy database layer (SQLite default, PostgreSQL via DATABASE_URL)
+  - LLM hybrid detection via Anthropic Claude (graceful no-op when key absent)
+  - PatternPipeline service (rule-based + LLM merge)
+  - Historical trust scoring backed by DB
+  - Structured logging with request-ID tracing
 """
 import logging
 import os
@@ -14,7 +21,7 @@ from flask_talisman import Talisman
 
 from config import Config
 
-# ── Logging ──────────────────────────────────────────────────────────────────
+# ── Logging ───────────────────────────────────────────────────────────────────
 
 os.makedirs("logs", exist_ok=True)
 os.makedirs("data", exist_ok=True)
@@ -36,7 +43,7 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # ── Security headers (non-debug only) ────────────────────────────────
+    # ── Security headers (non-debug only) ────────────────────────────
     if not Config.DEBUG:
         Talisman(
             app,
@@ -46,7 +53,7 @@ def create_app() -> Flask:
             content_security_policy=None,
         )
 
-    # ── CORS ─────────────────────────────────────────────────────────────
+    # ── CORS ─────────────────────────────────────────────────────────
     CORS(app, resources={
         r"/*": {
             "origins": Config.CORS_ORIGINS,
@@ -57,7 +64,7 @@ def create_app() -> Flask:
         }
     })
 
-    # ── Rate limiting ─────────────────────────────────────────────────────
+    # ── Rate limiting ─────────────────────────────────────────────────
     Limiter(
         app=app,
         key_func=get_remote_address,
@@ -69,13 +76,16 @@ def create_app() -> Flask:
         enabled=Config.RATE_LIMIT_ENABLED,
     )
 
-    # ── Request middleware ────────────────────────────────────────────────
+    # ── Request middleware ────────────────────────────────────────────
     @app.before_request
     def _before():
         request.start_time = time.time()
         request.request_id = os.urandom(8).hex()
         if request.path not in ("/health", "/metrics"):
-            logger.info(f"→ {request.method} {request.path} [{request.remote_addr}]")
+            logger.info(
+                f"→ {request.method} {request.path} "
+                f"[{request.remote_addr}] rid={request.request_id}"
+            )
 
     @app.after_request
     def _after(response):
@@ -87,7 +97,17 @@ def create_app() -> Flask:
                 logger.info(f"← {response.status_code}  {elapsed*1000:.1f}ms")
         return response
 
-    # ── Load detectors ────────────────────────────────────────────────────
+    # ── Database ──────────────────────────────────────────────────────
+    logger.info("Initialising database…")
+    try:
+        from database import setup_database
+        setup_database()
+        app.config["DB_ENABLED"] = True
+    except Exception as e:
+        logger.error(f"✗ Database init failed: {e}", exc_info=True)
+        app.config["DB_ENABLED"] = False
+
+    # ── Load detectors ────────────────────────────────────────────────
     logger.info("Loading PatternShield detectors…")
     detectors = {}
 
@@ -109,11 +129,46 @@ def create_app() -> Flask:
 
     app.config["DETECTORS"] = detectors
 
-    # ── Load services ─────────────────────────────────────────────────────
+    # ── LLM analyzer ─────────────────────────────────────────────────
+    llm_analyzer = None
+    if Config.LLM_ENABLED:
+        try:
+            from services.llm_analyzer import AnthropicLLMAnalyzer
+            llm_analyzer = AnthropicLLMAnalyzer(
+                api_key=Config.ANTHROPIC_API_KEY,
+                model=Config.LLM_MODEL,
+                timeout=Config.LLM_TIMEOUT,
+            )
+            status = "enabled" if llm_analyzer.is_enabled else "disabled (no API key)"
+            logger.info(f"✓ LLM analyzer loaded — {status}")
+        except Exception as e:
+            logger.warning(f"LLM analyzer init failed: {e}")
+    else:
+        logger.info("LLM_ENABLED=false — skipping LLM analyzer")
+
+    app.config["LLM_ANALYZER"] = llm_analyzer
+
+    # ── Pattern pipeline ──────────────────────────────────────────────
+    if detectors.get("rule"):
+        try:
+            from services.pattern_pipeline import PatternPipeline
+            pipeline = PatternPipeline(
+                rule_detector=detectors["rule"],
+                llm_analyzer=llm_analyzer,
+            )
+            app.config["PIPELINE"] = pipeline
+            logger.info("✓ PatternPipeline ready (rule-based + LLM hybrid)")
+        except Exception as e:
+            logger.warning(f"PatternPipeline init failed: {e}")
+            app.config["PIPELINE"] = None
+    else:
+        app.config["PIPELINE"] = None
+
+    # ── Load services ─────────────────────────────────────────────────
     try:
         from services.feedback_service import FeedbackService
         app.config["FEEDBACK_SERVICE"] = FeedbackService(Config.FEEDBACK_FILE)
-        logger.info("✓ Feedback service ready")
+        logger.info("✓ Feedback service ready (JSONL)")
     except Exception as e:
         logger.warning(f"Feedback service failed: {e}")
 
@@ -126,7 +181,7 @@ def create_app() -> Flask:
     except Exception as e:
         logger.warning(f"Temporal service failed: {e}")
 
-    # ── Register blueprints ───────────────────────────────────────────────
+    # ── Register blueprints ───────────────────────────────────────────
     from api.health import bp as health_bp
     from api.analysis import bp as analysis_bp
     from api.feedback import bp as feedback_bp
@@ -139,11 +194,13 @@ def create_app() -> Flask:
     app.register_blueprint(temporal_bp)
     app.register_blueprint(reports_bp)
 
-    # ── Error handlers ────────────────────────────────────────────────────
+    # ── Error handlers ────────────────────────────────────────────────
     @app.errorhandler(404)
     def not_found(_):
-        return jsonify({"error": "Endpoint not found",
-                        "hint": "GET / for a full list of endpoints"}), 404
+        return jsonify({
+            "error": "Endpoint not found",
+            "hint": "GET / for a full list of endpoints",
+        }), 404
 
     @app.errorhandler(429)
     def rate_limited(_):
@@ -163,18 +220,23 @@ def create_app() -> Flask:
 app = create_app()
 
 if __name__ == "__main__":
-    print("\n" + "=" * 62)
-    print("  PatternShield API  v2.1  —  Production Ready")
-    print("=" * 62)
-    print(f"  Environment : {Config.FLASK_ENV}")
-    print(f"  Debug       : {Config.DEBUG}")
-    print(f"  Rate limit  : {Config.RATE_LIMIT_ENABLED}")
-    print(f"  Auth        : {Config.API_KEY_REQUIRED}")
-    print(f"  Transformer : {Config.TRANSFORMER_ENABLED}")
-    print("=" * 62)
-    print(f"\n  API root   -> http://localhost:{Config.PORT}")
-    print(f"  Health     -> http://localhost:{Config.PORT}/health")
-    print("=" * 62 + "\n")
+    llm_status = (
+        f"{'active' if Config.ANTHROPIC_API_KEY else 'disabled (set ANTHROPIC_API_KEY)'}"
+    )
+    print("\n" + "=" * 66)
+    print("  PatternShield API  v3.0  —  LLM-Hybrid Detection")
+    print("=" * 66)
+    print(f"  Environment  : {Config.FLASK_ENV}")
+    print(f"  Debug        : {Config.DEBUG}")
+    print(f"  Database     : {Config.DATABASE_URL.split('://')[0]}")
+    print(f"  LLM          : {llm_status}")
+    print(f"  Rate limit   : {Config.RATE_LIMIT_ENABLED}")
+    print(f"  Auth         : {Config.API_KEY_REQUIRED}")
+    print(f"  Transformer  : {Config.TRANSFORMER_ENABLED}")
+    print("=" * 66)
+    print(f"\n  API root  -> http://localhost:{Config.PORT}")
+    print(f"  Health    -> http://localhost:{Config.PORT}/health")
+    print("=" * 66 + "\n")
 
     app.run(
         host="0.0.0.0",

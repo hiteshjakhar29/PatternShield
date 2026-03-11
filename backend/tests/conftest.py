@@ -17,6 +17,11 @@ def app():
     os.environ.setdefault("API_KEY_REQUIRED", "false")
     os.environ.setdefault("FEEDBACK_FILE", "/tmp/test_feedback.jsonl")
     os.environ.setdefault("TEMPORAL_FILE", "/tmp/test_temporal.json")
+    # Use in-memory SQLite for tests — fast, isolated, no file cleanup needed
+    os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+    os.environ.setdefault("TESTING", "true")
+    # Disable LLM in tests — no API key available in CI; rule-based only
+    os.environ.setdefault("LLM_ENABLED", "false")
 
     from app import create_app
     application = create_app()

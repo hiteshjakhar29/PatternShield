@@ -39,8 +39,11 @@ logs/
 htmlcov/
 .pytest_cache/
 
-# Models (if large)
-backend/models/
+# ML model weight files (large binaries — not SQLAlchemy source code)
+backend/models/distilbert_darkpattern/
+backend/models/*.bin
+backend/models/*.safetensors
+backend/models/*.pkl
 
 # Temporary files
 *.tmp

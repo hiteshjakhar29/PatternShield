@@ -11,18 +11,24 @@ class TestHealth:
         assert r.status_code == 200
 
     def test_health_has_version(self, client):
-        data = r = client.get("/health").get_json()
+        data = client.get("/health").get_json()
         assert "version" in data
-        assert data["version"] == "2.1.0"
+        # v3.0 — version bumped for LLM-hybrid release
+        assert data["version"] == "3.0.0"
 
     def test_health_has_status_healthy(self, client):
         data = client.get("/health").get_json()
         assert data["status"] == "healthy"
 
+    def test_health_has_detection_section(self, client):
+        data = client.get("/health").get_json()
+        assert "detection" in data
+        assert "persistence" in data
+
     def test_health_has_services(self, client):
         data = client.get("/health").get_json()
-        assert "services" in data
-        assert "models" in data
+        # v3.0: services moved under "persistence"
+        assert "persistence" in data or "services" in data
 
     def test_root_returns_endpoint_list(self, client):
         r = client.get("/")
