@@ -1,0 +1,13 @@
+# Vercel reads requirements.txt from the same directory as the function file.
+# This mirrors backend/requirements.txt exactly (gunicorn excluded — not needed serverless).
+
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-Limiter==3.5.0
+Flask-Talisman==1.1.0
+textblob==0.17.1
+nltk>=3.8.1
+SQLAlchemy>=2.0.0
+anthropic>=0.40.0
+python-dotenv>=1.0.0
+requests>=2.31.0

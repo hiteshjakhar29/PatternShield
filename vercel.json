@@ -1,19 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "backend/app.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "backend/app.py"
-    }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
   ],
   "env": {
     "FLASK_ENV": "production",
