@@ -21,20 +21,60 @@ from flask_talisman import Talisman
 
 from config import Config
 
+# ── Serverless / Vercel environment detection ─────────────────────────────────
+# On Vercel only /tmp is writable; the deployed source tree is read-only.
+_ON_VERCEL = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
+_TMP_DIR = "/tmp/patternshield" if _ON_VERCEL else None
+
+# ── NLTK bootstrap ─────────────────────────────────────────────────────────────
+# TextBlob (used in ml_detector) needs punkt + averaged_perceptron_tagger.
+# On Vercel these aren't pre-downloaded, so we grab them at cold-start into /tmp.
+def _bootstrap_nltk():
+    try:
+        import nltk
+        # Point NLTK at a writable location when running serverless
+        if _ON_VERCEL:
+            nltk_dir = "/tmp/nltk_data"
+            os.makedirs(nltk_dir, exist_ok=True)
+            os.environ.setdefault("NLTK_DATA", nltk_dir)
+            if nltk_dir not in nltk.data.path:
+                nltk.data.path.insert(0, nltk_dir)
+        for corpus in ["punkt", "punkt_tab", "averaged_perceptron_tagger", "vader_lexicon"]:
+            nltk.download(corpus, quiet=True)
+    except Exception as e:
+        # Non-fatal: sentiment analysis degrades gracefully if NLTK unavailable
+        print(f"[WARN] NLTK bootstrap failed: {e} — sentiment analysis disabled")
+
+_bootstrap_nltk()
+
 # ── Logging ───────────────────────────────────────────────────────────────────
 
-os.makedirs("logs", exist_ok=True)
-os.makedirs("data", exist_ok=True)
+# Use /tmp on serverless; local logs/ directory otherwise
+_log_dir = "/tmp/patternshield/logs" if _ON_VERCEL else "logs"
+_data_dir = "/tmp/patternshield/data" if _ON_VERCEL else "data"
+
+try:
+    os.makedirs(_log_dir, exist_ok=True)
+    os.makedirs(_data_dir, exist_ok=True)
+except OSError:
+    _log_dir = "/tmp"
+    _data_dir = "/tmp"
+
+_handlers = [logging.StreamHandler()]
+try:
+    _handlers.append(logging.FileHandler(os.path.join(_log_dir, "app.log")))
+except OSError:
+    pass  # Skip file logging on read-only filesystems
 
 logging.basicConfig(
     level=getattr(logging, Config.LOG_LEVEL, logging.INFO),
     format="%(asctime)s  %(name)-28s  %(levelname)-8s  %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("logs/app.log"),
-    ],
+    handlers=_handlers,
 )
 logger = logging.getLogger(__name__)
+
+# Expose resolved data dir so Config can reference it
+os.environ.setdefault("_RESOLVED_DATA_DIR", _data_dir)
 
 
 # ── App factory ───────────────────────────────────────────────────────────────

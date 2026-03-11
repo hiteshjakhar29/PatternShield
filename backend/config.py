@@ -36,13 +36,22 @@ class Config:
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
     # ── Storage paths (legacy JSONL — still used for fast append) ────
-    FEEDBACK_FILE = os.getenv("FEEDBACK_FILE", "data/feedback.jsonl")
-    TEMPORAL_FILE = os.getenv("TEMPORAL_FILE", "data/temporal.json")
+    # On Vercel only /tmp is writable; detect and redirect automatically.
+    _ON_VERCEL = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
+    _DATA_DIR = "/tmp/patternshield/data" if _ON_VERCEL else "data"
+    FEEDBACK_FILE = os.getenv("FEEDBACK_FILE", f"{_DATA_DIR}/feedback.jsonl")
+    TEMPORAL_FILE = os.getenv("TEMPORAL_FILE", f"{_DATA_DIR}/temporal.json")
 
     # ── Database (SQLAlchemy) ─────────────────────────────────────────
     # Default: SQLite for zero-config local dev.
-    # Set DATABASE_URL=postgresql://user:pass@host/dbname for production.
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/patternshield.db")
+    # On Vercel: /tmp (ephemeral — resets on cold start; data won't persist).
+    # For persistent storage: set DATABASE_URL=postgresql://...
+    _default_db = (
+        "sqlite:////tmp/patternshield/data/patternshield.db"
+        if bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
+        else "sqlite:///data/patternshield.db"
+    )
+    DATABASE_URL = os.getenv("DATABASE_URL", _default_db)
     DB_ECHO = os.getenv("DB_ECHO", "False").lower() == "true"
 
     # ── LLM integration (Anthropic Claude) ───────────────────────────

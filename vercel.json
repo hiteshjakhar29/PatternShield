@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/app.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "backend/app.py"
+    }
+  ],
+  "env": {
+    "FLASK_ENV": "production",
+    "FLASK_DEBUG": "false",
+    "RATE_LIMIT_ENABLED": "false",
+    "API_KEY_REQUIRED": "false",
+    "LOG_LEVEL": "WARNING"
+  }
+}
